@@ -192,6 +192,8 @@ CREATE TABLE public.students (
   monthly_rent numeric,
   payment_status character varying DEFAULT 'pending'::character varying,
   payment_due_date date,
+  is_taking_mess boolean NOT NULL DEFAULT false,
+  profile_image_path text,
   hostelid uuid,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
@@ -222,6 +224,10 @@ CREATE TABLE IF NOT EXISTS public.documents (
   CONSTRAINT documents_pkey PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS idx_students_hostelid ON public.students (hostelid);
+
+-- Local profile image path (e.g. /uploads/students/uuid.jpg)
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS profile_image_path text;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS is_taking_mess boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS idx_expenses_hostelid ON public.expenses (hostelid);
 CREATE INDEX IF NOT EXISTS idx_documents_studentid ON public.documents (studentid);
 CREATE INDEX IF NOT EXISTS idx_documents_hostelid ON public.documents (hostelid);

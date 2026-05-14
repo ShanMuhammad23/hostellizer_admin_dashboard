@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { CloudinaryUpload } from '@/components/CloudinaryUpload'
+import { LocalImageUpload } from '@/components/LocalImageUpload'
 import { 
   FileText, 
   Upload, 
@@ -396,7 +396,12 @@ export default function StudentDocuments({ params }: { params: { id: string } })
                 </div>
 
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                  <CloudinaryUpload onUploadSuccess={handleUploadSuccess} />
+                  <LocalImageUpload
+                    folder="documents"
+                    label="Upload file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                    onUploadSuccess={handleUploadSuccess}
+                  />
                 </div>
 
                 <div className="text-xs text-gray-500 text-center">

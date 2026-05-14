@@ -19,6 +19,8 @@ export async function GET() {
         monthly_rent AS "monthlyrent",
         payment_status AS "paymentstatus",
         payment_due_date AS "payment_due_date",
+        is_taking_mess AS "istakingmess",
+        COALESCE(profile_image_path, '') AS "image",
         hostelid
       FROM students
       WHERE hostelid = ${hostelId}
@@ -45,7 +47,37 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const hostelId = await getAuthenticatedHostelId();
-    const { name, email, phone, address, roomNumber, status, accomodationType, monthlyRent, istakingmess } = await request.json();
+    const {
+      name,
+      email,
+      phone,
+      address,
+      roomNumber,
+      status,
+      accomodationType,
+      monthlyRent,
+      paymentStatus,
+      payment_due_date,
+      istakingmess,
+      profileImagePath,
+    } = await request.json();
+
+    const paymentStatusNorm =
+      paymentStatus === "paid" ||
+      paymentStatus === "pending" ||
+      paymentStatus === "overdue"
+        ? paymentStatus
+        : "pending";
+
+    const paymentDueDate =
+      typeof payment_due_date === "string" && payment_due_date.trim() !== ""
+        ? payment_due_date.trim().slice(0, 10)
+        : null;
+
+    const isTakingMess =
+      istakingmess === true ||
+      istakingmess === "true" ||
+      istakingmess === 1;
 
     // Validate required fields
     if (!name || !email || !phone || !address || !roomNumber || !status || !accomodationType || !monthlyRent) {
@@ -54,6 +86,17 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    const imagePath =
+      typeof profileImagePath === "string" &&
+      profileImagePath.startsWith("/uploads/students/")
+        ? profileImagePath
+        : null;
+
+    const addr =
+      typeof address === "string"
+        ? { street: address, town: "", city: "" }
+        : address;
 
     const result = await sql`
       INSERT INTO students (
@@ -65,25 +108,36 @@ export async function POST(request: Request) {
         status,
         accommodation_type,
         monthly_rent,
+        payment_status,
+        payment_due_date,
+        is_taking_mess,
         hostelid,
-        joined_date
+        joined_date,
+        profile_image_path
       )
       VALUES (
         ${name},
         ${email},
         ${phone},
-        ${sql.json(address)},
+        ${sql.json(addr)},
         ${roomNumber},
         ${status},
         ${accomodationType},
         ${monthlyRent},
+        ${paymentStatusNorm},
+        ${paymentDueDate},
+        ${isTakingMess},
         ${hostelId},
-        CURRENT_DATE
+        CURRENT_DATE,
+        ${imagePath}
       )
-      RETURNING *
+      RETURNING id
     `;
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      success: true,
+      student: result[0],
+    });
   } catch (error) {
     console.error('Error creating student:', error);
     return NextResponse.json(

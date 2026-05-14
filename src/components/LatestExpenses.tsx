@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import * as React from "react"
+import Link from "next/link"
 import {
   ColumnDef,
   SortingState,
@@ -44,9 +45,12 @@ export const columns: ColumnDef<LatestExpensesType>[] = [
     accessorKey: "amount",
     header: () => <div className="text-right">Amount</div>,
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"))
-    
-      return <div className="text-right font-medium">{amount}</div>
+      const amount = parseFloat(String(row.getValue("amount")))
+      return (
+        <div className="text-right font-medium">
+          PKR {amount.toLocaleString()}
+        </div>
+      )
     },
   },
   {
@@ -64,7 +68,11 @@ export const columns: ColumnDef<LatestExpensesType>[] = [
   },
 ]
 
-export default function LatestExpenses() {
+export default function LatestExpenses({
+  variant = "default",
+}: {
+  variant?: "default" | "operational"
+}) {
   const [latestExpenses, setLatestExpenses] = useState<LatestExpensesType[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -99,17 +107,34 @@ export default function LatestExpenses() {
   return (
     <div className="w-full p-4 sm:p-6 bg-white rounded-lg shadow-sm border">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-6 w-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Latest Expenses</h1>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <Building2 className="h-6 w-6 text-primary" />
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">Latest Expenses</h1>
+          </div>
+          {variant === "operational" ? (
+            <p className="text-xs text-muted-foreground pl-9 max-w-md">
+              Budget vs actual: use the expenses page to set monthly targets and compare burn
+              against rent inflows.
+            </p>
+          ) : null}
         </div>
-        <Button
-          variant="outline"
-          onClick={() => window.location.href = '/dashboard/expenses'}
-        >
-          View All
-          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {variant === "operational" ? (
+            <Button variant="default" size="sm" asChild>
+              <Link href="/dashboard/expenses">Record expense</Link>
+            </Button>
+          ) : null}
+          <Button
+            variant="outline"
+            asChild
+          >
+            <Link href="/dashboard/expenses" className="group inline-flex items-center">
+              View All
+              <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">

@@ -59,7 +59,7 @@ export async function GET() {
           WHERE s.hostelid = ${hostelId}
             AND lower(COALESCE(s.status, 'active')) = 'active'
             AND COALESCE(s.joined_date, s.created_at::date)
-              <= (m.month_start + interval '1 month - interval '1 day')::date
+              <= (m.month_start + interval '1 month - 1 day')::date
         ) AS students,
         (SELECT capacity FROM cap) AS capacity
       FROM months m

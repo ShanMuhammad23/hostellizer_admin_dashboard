@@ -10,7 +10,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { Building2, ArrowRight } from "lucide-react"
+import { Building2, ArrowRight, Check, X } from "lucide-react"
+import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,7 +27,7 @@ interface Application {
     id: string
     studentName: string
     bidAmount: number
-    status: 'Pending' | 'Approved' | 'Rejected'
+    status: 'pending' | 'approved' | 'rejected'
 }
 
 interface ApiApplication {
@@ -38,41 +39,133 @@ interface ApiApplication {
     student_name: string
 }
 
-const columns: ColumnDef<Application>[] = [
-  {
-    accessorKey: "studentName",
-    header: "Student Name",
-  },
-  {
-    accessorKey: "bidAmount",
-    header: () => <div className="text-right">Bid Amount</div>,
-    cell: ({ row }) => {
-      const amount = row.getValue("bidAmount") as number
-      return <div className="text-right font-medium">{amount}</div>
+function buildColumns(
+  operational: boolean,
+  onStatusChange: (id: string, status: "approved" | "rejected") => void,
+  actingId: string | null
+): ColumnDef<Application>[] {
+  const base: ColumnDef<Application>[] = [
+    {
+      accessorKey: "studentName",
+      header: "Student Name",
     },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string
-      return (
-        <div className={`font-medium ${
-          status === 'approved' ? 'text-green-600' :
-          status === 'rejected' ? 'text-red-600' :
-          'text-amber-600'
-        }`}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </div>
-      )
+    {
+      accessorKey: "bidAmount",
+      header: () => <div className="text-right">Bid Amount</div>,
+      cell: ({ row }) => {
+        const amount = row.getValue("bidAmount") as number
+        return (
+          <div className="text-right font-medium">
+            PKR {Number(amount).toLocaleString()}
+          </div>
+        )
+      },
     },
-  },
-]
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string
+        return (
+          <div className={`font-medium ${
+            status === 'approved' ? 'text-green-600' :
+            status === 'rejected' ? 'text-red-600' :
+            'text-amber-600'
+          }`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </div>
+        )
+      },
+    },
+  ]
+  if (!operational) return base
+  return [
+    ...base,
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const status = row.original.status
+        if (status !== "pending") {
+          return <span className="text-xs text-muted-foreground">—</span>
+        }
+        const busy = actingId === row.original.id
+        return (
+          <div className="flex flex-wrap gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              className="h-7 bg-emerald-600 hover:bg-emerald-700"
+              disabled={busy}
+              onClick={() => onStatusChange(row.original.id, "approved")}
+            >
+              <Check className="h-3 w-3 mr-1" />
+              Approve
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 border-red-200 text-red-700 hover:bg-red-50"
+              disabled={busy}
+              onClick={() => onStatusChange(row.original.id, "rejected")}
+            >
+              <X className="h-3 w-3 mr-1" />
+              Reject
+            </Button>
+          </div>
+        )
+      },
+    },
+  ]
+}
 
-export default function LatestApplications() {
+interface LatestApplicationsProps {
+  variant?: "default" | "operational"
+}
+
+export default function LatestApplications({ variant = "default" }: LatestApplicationsProps) {
   const [applications, setApplications] = useState<Application[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [actingId, setActingId] = useState<string | null>(null)
+
+  const operational = variant === "operational"
+
+  const handleStatusChange = React.useCallback(
+    async (id: string, status: "approved" | "rejected") => {
+      try {
+        setActingId(id)
+        const res = await axios.put(`/api/applications/${id}`, { status })
+        if (!res.data?.success) {
+          throw new Error(res.data?.message || "Update failed")
+        }
+        toast.success(status === "approved" ? "Application approved" : "Application rejected")
+        const response = await axios.get("/api/fetchLatestApplications")
+        const raw = response.data?.LatestApplications
+        const list = Array.isArray(raw) ? raw : []
+        const mappedData = list.map((app: ApiApplication) => ({
+          id: app.id,
+          studentName: app.student_name,
+          bidAmount: app["bid-amount"],
+          status: (app.status?.toLowerCase() || "pending") as Application["status"],
+        }))
+        setApplications(mappedData)
+      } catch (e) {
+        console.error(e)
+        toast.error("Could not update application")
+      } finally {
+        setActingId(null)
+      }
+    },
+    []
+  )
+
+  const columns = React.useMemo(
+    () => buildColumns(operational, handleStatusChange, actingId),
+    [operational, handleStatusChange, actingId]
+  )
 
   const table = useReactTable({
     data: applications,
@@ -90,11 +183,13 @@ export default function LatestApplications() {
       try {
         setIsLoading(true)
         const response = await axios.get("/api/fetchLatestApplications")
-        const mappedData = response.data.LatestApplications.map((app: ApiApplication) => ({
+        const raw = response.data?.LatestApplications
+        const list = Array.isArray(raw) ? raw : []
+        const mappedData = list.map((app: ApiApplication) => ({
           id: app.id,
           studentName: app.student_name,
           bidAmount: app["bid-amount"],
-          status: app.status?.toLowerCase() || 'Pending'
+          status: (app.status?.toLowerCase() || "pending") as Application["status"],
         }))
         setApplications(mappedData)
       } catch (error) {
@@ -109,9 +204,16 @@ export default function LatestApplications() {
   return (
     <div className="w-full p-4 sm:p-6 bg-white rounded-lg shadow-sm border">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-6 w-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Latest Applications</h1>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <Building2 className="h-6 w-6 text-primary" />
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">Latest Applications</h1>
+          </div>
+          {operational ? (
+            <p className="text-xs text-muted-foreground pl-9 max-w-md">
+              Pending requests can be approved or rejected here without opening the full list.
+            </p>
+          ) : null}
         </div>
         <Button
           variant="outline"

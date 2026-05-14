@@ -28,6 +28,7 @@ interface StudentCardProps {
     accomodationType: string;
     paymentStatus: string;
     payment_due_date: string;
+    istakingmess?: boolean;
   };
   onStudentUpdated: () => void;
 }

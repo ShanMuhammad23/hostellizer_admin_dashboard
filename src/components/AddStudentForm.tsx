@@ -30,11 +30,11 @@ import * as z from "zod";
 import axios from "axios";
 import { toast } from "sonner";
 import { PlusIcon } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { getAuthenticatedHostelId } from "@/lib/auth";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { DialogFooter } from "@/components/ui/dialog";
+import Image from "next/image";
+import { LocalImageUpload } from "@/components/LocalImageUpload";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -57,26 +57,7 @@ interface AddStudentFormProps {
 export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { data: session } = useSession();
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: {
-      street: '',
-      town: '',
-      city: ''
-    },
-    roomNumber: '',
-    status: 'active',
-    joinedDate: format(new Date(), 'yyyy-MM-dd'),
-    accomodationType: 'single',
-    monthlyRent: '',
-    paymentStatus: 'pending',
-    payment_due_date: format(new Date(), 'yyyy-MM-dd'),
-    istakingmess: false
-  });
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -90,7 +71,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       accomodationType: "single",
       monthlyRent: 0,
       paymentStatus: "pending",
-      payment_due_date: "",
+      payment_due_date: format(new Date(), "yyyy-MM-dd"),
       istakingmess: false
     },
   });
@@ -101,6 +82,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
       const response = await axios.post("/api/students", {
         ...values,
         joinedDate: new Date().toISOString(),
+        profileImagePath: profilePreview || undefined,
       });
 
       if (response.data.success) {
@@ -109,6 +91,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
           duration: 5000,
         });
         setOpen(false);
+        setProfilePreview(null);
         form.reset();
         onStudentAdded?.();
       } else {
@@ -131,7 +114,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setProfilePreview(null); }}>
       <DialogTrigger asChild>
         <Button >
           <PlusIcon className="w-4 h-4 mr-2" />
@@ -195,6 +178,26 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 </FormItem>
               )}
             />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-700">Profile picture (optional)</p>
+              {profilePreview ? (
+                <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-slate-200">
+                  <Image
+                    src={profilePreview}
+                    alt="Profile preview"
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                </div>
+              ) : null}
+              <LocalImageUpload
+                folder="students"
+                label={profilePreview ? "Change photo" : "Upload photo"}
+                onUploadSuccess={(path) => setProfilePreview(path)}
+              />
+            </div>
             <FormField
               control={form.control}
               name="address"
@@ -245,7 +248,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="bg-slate-50/50 border-2 border-slate-200 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all duration-200 hover:border-slate-300">
                         <SelectValue placeholder="Select status" />
@@ -267,7 +270,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Accommodation Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="bg-slate-50/50 border-2 border-slate-200 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all duration-200 hover:border-slate-300">
                         <SelectValue placeholder="Select type" />
@@ -316,7 +319,7 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Payment Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="bg-slate-50/50 border-2 border-slate-200 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all duration-200 hover:border-slate-300">
                         <SelectValue placeholder="Select status" />
@@ -339,14 +342,12 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                 <FormItem>
                   <FormLabel className="text-slate-700">Payment Due Date</FormLabel>
                   <FormControl>
-                    <div className="space-y-2">
-                      <Input
-                        type="date"
-                        value={formData.payment_due_date}
-                        onChange={(e) => setFormData({ ...formData, payment_due_date: e.target.value })}
-                        required
-                      />
-                    </div>
+                    <Input
+                      type="date"
+                      className="bg-slate-50/50 border-2 border-slate-200 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all duration-200 hover:border-slate-300"
+                      {...field}
+                      value={field.value || ""}
+                    />
                   </FormControl>
                   <FormMessage className="text-red-500" />
                 </FormItem>
@@ -362,9 +363,9 @@ export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="istakingmess"
-                        checked={formData.istakingmess}
-                        onCheckedChange={(checked) => 
-                          setFormData({ ...formData, istakingmess: checked as boolean })
+                        checked={field.value}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked === true)
                         }
                       />
                       <label

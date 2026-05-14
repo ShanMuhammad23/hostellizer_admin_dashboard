@@ -28,6 +28,37 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import axios from "axios";
 import { toast } from "sonner";
+import Image from "next/image";
+import { LocalImageUpload } from "@/components/LocalImageUpload";
+import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
+
+/** API may return `YYYY-MM-DD` or an ISO datetime string */
+function formatDueDateInput(v: string | null | undefined): string {
+  if (v == null || v === "") return "";
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? "" : format(d, "yyyy-MM-dd");
+}
+
+function normalizePaymentStatusEnum(
+  raw: string | undefined
+): "paid" | "pending" | "overdue" {
+  if (raw == null || raw === "") return "pending";
+  const v = String(raw).toLowerCase();
+  if (v === "paid") return "paid";
+  if (v === "overdue") return "overdue";
+  return "pending";
+}
+
+function normalizeMessFlag(student: {
+  istakingmess?: boolean;
+  is_taking_mess?: boolean;
+}): boolean {
+  const v: unknown = student.istakingmess ?? student.is_taking_mess;
+  return v === true || v === "true" || v === 1;
+}
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -40,6 +71,7 @@ const formSchema = z.object({
   monthlyRent: z.number().min(0, "Monthly rent must be at least 0"),
   paymentStatus: z.enum(["paid", "pending", "overdue"]),
   payment_due_date: z.string(),
+  istakingmess: z.boolean(),
 });
 
 interface EditStudentFormProps {
@@ -53,8 +85,13 @@ interface EditStudentFormProps {
     status: string;
     accomodationType: string;
     monthlyRent: number;
-    paymentStatus: string;
+    /** Prefer camelCase; `paymentstatus` matches GET `/api/students` JSON */
+    paymentStatus?: string;
+    paymentstatus?: string;
     payment_due_date: string;
+    istakingmess?: boolean;
+    is_taking_mess?: boolean;
+    image?: string;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -63,6 +100,7 @@ interface EditStudentFormProps {
 
 export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated }: EditStudentFormProps) {
   const [loading, setLoading] = useState(false);
+  const [profilePath, setProfilePath] = useState(student.image || "");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,8 +113,11 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
       status: student.status as "active" | "inactive" | "pending",
       accomodationType: student.accomodationType as "single" | "double" | "triple",
       monthlyRent: student.monthlyRent,
-      paymentStatus: student.paymentStatus as "paid" | "pending" | "overdue",
-      payment_due_date: student.payment_due_date,
+      paymentStatus: normalizePaymentStatusEnum(
+        student.paymentStatus ?? student.paymentstatus
+      ),
+      payment_due_date: formatDueDateInput(student.payment_due_date),
+      istakingmess: normalizeMessFlag(student),
     },
   });
 
@@ -91,18 +132,29 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
       status: student.status as "active" | "inactive" | "pending",
       accomodationType: student.accomodationType as "single" | "double" | "triple",
       monthlyRent: student.monthlyRent,
-      paymentStatus: student.paymentStatus as "paid" | "pending" | "overdue",
-      payment_due_date: student.payment_due_date,
+      paymentStatus: normalizePaymentStatusEnum(
+        student.paymentStatus ?? student.paymentstatus
+      ),
+      payment_due_date: formatDueDateInput(student.payment_due_date),
+      istakingmess: normalizeMessFlag(student),
     });
   }, [student, form]);
+
+  useEffect(() => {
+    setProfilePath(student.image || "");
+  }, [student.image, student.id]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setLoading(true);
-      const response = await axios.put(`/api/students/${student.id}`, {
-        ...values,
-        hostel_id: "e2f6ff7b-7f3b-40dd-bf6b-a28cb1b03c71",
-      });
+      const payload: Record<string, unknown> = { ...values };
+      if (profilePath === "") {
+        payload.profileImagePath = null;
+      } else if (profilePath.startsWith("/uploads/students/")) {
+        payload.profileImagePath = profilePath;
+      }
+
+      const response = await axios.put(`/api/students/${student.id}`, payload);
 
       if (response.data.success) {
         toast.success("Student updated successfully!", {
@@ -138,6 +190,46 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="flex flex-col items-center gap-2 border-b pb-4">
+              <div className="relative h-20 w-20 overflow-hidden rounded-full border">
+                {profilePath ? (
+                  <Image
+                    src={profilePath}
+                    alt=""
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-cover"
+                    unoptimized={profilePath.startsWith("/uploads/")}
+                  />
+                ) : (
+                  <Image
+                    src="/img/user-placeholder-image.jpg"
+                    alt=""
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <LocalImageUpload
+                  folder="students"
+                  label={profilePath ? "Change photo" : "Add photo"}
+                  onUploadSuccess={(path) => setProfilePath(path)}
+                />
+                {profilePath ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600"
+                    onClick={() => setProfilePath("")}
+                  >
+                    Remove photo
+                  </Button>
+                ) : null}
+              </div>
+            </div>
             <FormField
               control={form.control}
               name="name"
@@ -214,7 +306,7 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -236,7 +328,7 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Accommodation Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -276,7 +368,7 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Payment Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
@@ -299,7 +391,38 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
                 <FormItem>
                   <FormLabel>Payment Due Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input
+                      type="date"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="istakingmess"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Taking mess facility</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-istakingmess"
+                        checked={field.value}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked === true)
+                        }
+                      />
+                      <label
+                        htmlFor="edit-istakingmess"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Student uses mess facility
+                      </label>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

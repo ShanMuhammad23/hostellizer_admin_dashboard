@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import Link from 'next/link';
 import { useSession } from "next-auth/react";
 import MegaLoader from '@/components/ui/MegaLoader';
+import Image from "next/image";
 interface Student {
   id: string;
   name: string;
@@ -21,8 +22,10 @@ interface Student {
   monthlyrent: number;
   joineddate: string;
   accomodationtype: string;
-  paymentstatus: string;
-  payment_due_date: string;
+    paymentstatus: string;
+    payment_due_date: string;
+    istakingmess?: boolean;
+    image?: string;
 }
 
 export default function StudentsPage() {
@@ -209,9 +212,31 @@ export default function StudentsPage() {
             href={`/dashboard/students/${student.id}`}
             className="block sm:grid sm:grid-cols-5 gap-4 p-4 hover:bg-purple-50 transition-colors duration-200 cursor-pointer"
           >
-            <div className="flex flex-col sm:block mb-2 sm:mb-0">
-              <span className="text-xs text-gray-500 sm:hidden">Student Name</span>
-              <div className="text-primary font-medium">{student.name}</div>
+            <div className="flex items-center gap-3">
+              <div className="relative hidden h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 sm:block">
+                {student.image ? (
+                  <Image
+                    src={student.image}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
+                    unoptimized={student.image.startsWith("/uploads/")}
+                  />
+                ) : (
+                  <Image
+                    src="/img/user-placeholder-image.jpg"
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col sm:block mb-2 sm:mb-0">
+                <span className="text-xs text-gray-500 sm:hidden">Student Name</span>
+                <div className="text-primary font-medium">{student.name}</div>
+              </div>
             </div>
             <div className="flex flex-col sm:block mb-2 sm:mb-0">
               <span className="text-xs text-gray-500 sm:hidden">Phone Number</span>

@@ -5,7 +5,7 @@ import { FaStar, FaEnvelope, FaPhone, FaMapMarkerAlt, FaWifi,  FaParking, FaUten
 import Image from "next/image"
 import { EditProfileForm } from "@/components/EditProfileForm"
 import { toast } from "sonner"
-import { CloudinaryUpload } from "@/components/CloudinaryUpload"
+import { LocalImageUpload } from "@/components/LocalImageUpload"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 export interface Amenities {
@@ -182,7 +182,7 @@ const Profile = () => {
                                 src={hostel.hostel_images[activeImageIndex]}
                                 alt={hostel.hostel_name}
                                 fill
-                                className="object-cover"
+                                className="object-cover inset-0"
                                 onError={(e) => {
                                     console.error('Image failed to load:', e);
                                     const target = e.target as HTMLImageElement;
@@ -212,7 +212,8 @@ const Profile = () => {
                         </div>
                         {/* Add image upload button */}
                         <div className="absolute top-4 right-4">
-                            <CloudinaryUpload
+                            <LocalImageUpload
+                                folder="hostel"
                                 onUploadSuccess={async (imageUrl) => {
                                     try {
                                         const response = await axios.post('/api/hostel/images', {

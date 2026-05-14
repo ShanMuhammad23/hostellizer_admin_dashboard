@@ -40,4 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
+# Local user uploads (keep public/uploads/.gitkeep)
+/public/uploads/**
+!/public/uploads/.gitkeep

@@ -1,5 +1,6 @@
-"use client"
-import {useEffect, useState} from "react"
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   CardDescription,
@@ -10,7 +11,7 @@ import {
 import { Users, Home, Bed, Wallet, Receipt, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface OverviewData {
+interface OverviewRow {
   hostel_name: string;
   total_students: number;
   total_rooms: number;
@@ -18,6 +19,53 @@ interface OverviewData {
   total_rent_collected: string;
   total_expenses: string;
   profit: string;
+  rent_trend_pct?: string | null;
+  expense_trend_pct?: string | null;
+  profit_trend_pct?: string | null;
+  new_students_30d?: string | number;
+  new_students_prev_30d?: string | number;
+  occupancy_pct?: string | null;
+}
+
+function num(v: string | number | null | undefined): number {
+  if (v == null || v === "") return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function pctDelta(curr: number, prev: number): number | null {
+  if (prev === 0) return curr > 0 ? 100 : null;
+  return ((curr - prev) / prev) * 100;
+}
+
+function TrendLine({
+  pct,
+  invert = false,
+  suffix = "vs prior 30d",
+}: {
+  pct: number | null;
+  invert?: boolean;
+  suffix?: string;
+}) {
+  if (pct == null || Number.isNaN(pct)) {
+    return (
+      <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+        {suffix}: —
+      </p>
+    );
+  }
+  const good = invert ? pct <= 0 : pct >= 0;
+  return (
+    <p
+      className={`mt-1 flex items-center gap-1 text-[10px] font-medium leading-tight ${
+        good ? "text-emerald-600" : "text-red-600"
+      }`}
+    >
+      <span>{pct >= 0 ? "↑" : "↓"}</span>
+      <span>{Math.abs(Math.round(pct))}%</span>
+      <span className="font-normal text-muted-foreground">{suffix}</span>
+    </p>
+  );
 }
 
 const CardSkeleton = () => (
@@ -30,32 +78,34 @@ const CardSkeleton = () => (
       <Skeleton className="h-6 w-16 sm:w-20" />
     </CardContent>
   </Card>
-)
+);
 
 export function SectionCards() {
-  const [overviewData, setOverviewData] = useState<OverviewData | null>(null);
+  const [overviewData, setOverviewData] = useState<OverviewRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchOverviewData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/fetchOverviewData');
+        const response = await fetch("/api/fetchOverviewData");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        
+
         if (data.success && data.overviewData && data.overviewData.length > 0) {
-          setOverviewData(data.overviewData[0]);
+          setOverviewData(data.overviewData[0] as OverviewRow);
           setError(null);
         } else {
-          setError('No data available');
+          setError("No data available");
         }
-      } catch (error) {
-        setError('Failed to fetch data. Please check your internet connection and try again!');
-        console.error('Error fetching data:', error);
+      } catch (e) {
+        setError(
+          "Failed to fetch data. Please check your internet connection and try again!"
+        );
+        console.error("Error fetching data:", e);
       } finally {
         setIsLoading(false);
       }
@@ -64,12 +114,16 @@ export function SectionCards() {
   }, []);
 
   if (error) {
-    return <div className="max-w-md mx-auto p-4 text-red-500 border border-red-500 text-center">{error}</div>;
+    return (
+      <div className="max-w-md mx-auto p-4 text-red-500 border border-red-500 text-center rounded-md">
+        {error}
+      </div>
+    );
   }
 
-  if (isLoading) {
+  if (isLoading || !overviewData) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full max-w-6xl mx-auto px-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full max-w-7xl mx-auto px-2">
         {Array.from({ length: 6 }).map((_, index) => (
           <CardSkeleton key={index} />
         ))}
@@ -77,77 +131,117 @@ export function SectionCards() {
     );
   }
 
+  const o = overviewData;
+  const rentPct = num(o.rent_trend_pct);
+  const expPct = num(o.expense_trend_pct);
+  const profitPct = num(o.profit_trend_pct);
+  const new30 = num(o.new_students_30d);
+  const newPrev = num(o.new_students_prev_30d);
+  const studentFlowPct = pctDelta(new30, newPrev);
+  const occPct = num(o.occupancy_pct);
+  const cap = Math.max(1, (o.total_rooms || 0) * 2);
+  const vacPct = (num(o.vacancies_available) / cap) * 100;
+
   const cards = [
     {
-      title: "Total Students",
-      value: overviewData?.total_students || 0,
+      title: "Students",
+      value: o.total_students,
+      money: false,
       icon: Users,
       color: "text-white",
       valueColor: "text-white",
       descriptionColor: "text-white",
       bgColor: "bg-primary",
       borderColor: "border",
-      hoverBorderColor: "hover:border-primary"
+      hoverBorderColor: "hover:border-primary",
+      trend: (
+        <>
+          <TrendLine pct={studentFlowPct} suffix="new vs prior 30d" />
+          {new30 > 0 ? (
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              +{new30} joined last 30 days
+            </p>
+          ) : null}
+        </>
+      ),
     },
     {
-      title: "Rooms Available",
-      value: overviewData?.total_rooms || 0,
+      title: "Rooms",
+      value: o.total_rooms,
+      money: false,
       icon: Home,
       color: "text-primary",
       valueColor: "text-black",
       descriptionColor: "text-black",
       bgColor: "bg-secondary",
       borderColor: "border",
-      hoverBorderColor: "hover:border-primary"
+      hoverBorderColor: "hover:border-primary",
+      trend: (
+        <p className="mt-1 text-[10px] text-muted-foreground leading-tight">
+          {occPct > 0 ? `${Math.round(occPct)}% beds filled` : "—"}
+        </p>
+      ),
     },
     {
-      title: "Vacancies Available",
-      value: overviewData?.vacancies_available || 0,
+      title: "Vacancies",
+      value: o.vacancies_available,
+      money: false,
       icon: Bed,
       color: "text-white",
       valueColor: "text-white",
       descriptionColor: "text-white",
       bgColor: "bg-primary",
       borderColor: "border",
-      hoverBorderColor: "hover:border-primary"
+      hoverBorderColor: "hover:border-primary",
+      trend: (
+        <p className="mt-1 text-[10px] text-muted-foreground leading-tight">
+          {vacPct > 0 ? `${Math.round(vacPct)}% of beds free` : "—"}
+        </p>
+      ),
     },
     {
-      title: "Rent Collection",
-      value: overviewData?.total_rent_collected || 0,
+      title: "Rent collected",
+      value: o.total_rent_collected,
+      money: true,
       icon: Wallet,
       color: "text-white",
       valueColor: "text-black",
       descriptionColor: "text-black",
       bgColor: "bg-secondary",
       borderColor: "border",
-      hoverBorderColor: "hover:border-green-400"
+      hoverBorderColor: "hover:border-green-400",
+      trend: <TrendLine pct={rentPct} />,
     },
     {
-      title: "Total Expenses",
-      value: overviewData?.total_expenses || 0,
+      title: "Expenses",
+      value: o.total_expenses,
+      money: true,
       icon: Receipt,
       color: "text-white",
       valueColor: "text-white",
       descriptionColor: "text-white",
       bgColor: "bg-primary",
       borderColor: "border-purple-200",
-      hoverBorderColor: "hover:border-primary"
+      hoverBorderColor: "hover:border-primary",
+      trend: <TrendLine pct={expPct} invert />,
     },
     {
-      title: "Total Revenue",
-      value: overviewData?.profit || 0,
+      title: "Profit",
+      value: o.profit,
+      money: true,
       icon: TrendingUp,
       color: "text-black",
       valueColor: "text-black",
       descriptionColor: "text-black",
       bgColor: "bg-secondary",
       borderColor: "border-green-200",
-      hoverBorderColor: "hover:border-primary"
-    }
+      hoverBorderColor: "hover:border-primary",
+      trend: <TrendLine pct={profitPct} />,
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full max-w-6xl mx-auto px-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full max-w-7xl mx-auto px-2">
       {cards.map((card, index) => (
         <Card
           key={index}
@@ -165,10 +259,11 @@ export function SectionCards() {
             <CardDescription
               className={`text-base sm:text-lg font-bold tabular-nums tracking-tight ${card.valueColor} line-clamp-2`}
             >
-              {card.title === "Rent Collection" || card.title === "Total Expenses" || card.title === "Total Revenue"
+              {card.money
                 ? `PKR ${Number(card.value).toLocaleString()}`
                 : card.value}
             </CardDescription>
+            {card.trend}
           </CardContent>
         </Card>
       ))}

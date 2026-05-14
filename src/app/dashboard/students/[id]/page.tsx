@@ -20,6 +20,7 @@ import { AttendanceCalendar } from '@/components/AttendanceCalendar';
 import { MessAttendance } from '@/components/MessAttendance';
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge"
+import { LocalImageUpload } from "@/components/LocalImageUpload";
 // Register the plugin
 interface WindowWithJsPDF extends Window {
     jsPDF: typeof jsPDF;
@@ -205,11 +206,14 @@ export default function StudentDetails({ params }: { params: { id: string } }) {
         try {
             const response = await axios.put(`/api/students/${id}`, editedStudent);
             if (response.data.success) {
-                setStudent(response.data.student);
+                const refreshed = await axios.get(`/api/students/${id}`);
+                if (refreshed.data.success) {
+                    setStudent(refreshed.data.student);
+                }
                 setIsEditing(false);
                 toast.success('Student details updated successfully');
             } else {
-                throw new Error(response.data.message || 'Failed to update student details');
+                throw new Error(response.data.message || response.data.error || 'Failed to update student details');
             }
         } catch (error) {
             setEditError(error instanceof Error ? error.message : 'Failed to update student details');
@@ -317,11 +321,18 @@ export default function StudentDetails({ params }: { params: { id: string } }) {
                     <div className="p-4 sm:p-6">
                         <div className="flex flex-col sm:flex-row  sm:justify-between gap-4">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                                <div className="h-[400px] w-[400px] rounded-full flex items-center justify-center">
+                                <div className="h-40 w-40 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
                                     {student.image ? (
-                                        <Image src={student.image} alt={student.name} width={160} height={160} className="w-full h-full object-cover" />
+                                        <Image
+                                            src={student.image}
+                                            alt={student.name}
+                                            width={160}
+                                            height={160}
+                                            className="h-full w-full object-cover"
+                                            unoptimized={student.image.startsWith("/uploads/")}
+                                        />
                                     ) : (
-                                        <Image src='/img/user-placeholder-image.jpg' alt='User Placeholder' width={160} height={160} className="w-full h-full object-cover" />
+                                        <Image src='/img/user-placeholder-image.jpg' alt='User Placeholder' width={160} height={160} className="h-full w-full object-cover" />
                                     )}
                                 </div>
                                 <div className="flex flex-col  gap-2 sm:gap-4">
@@ -436,6 +447,50 @@ export default function StudentDetails({ params }: { params: { id: string } }) {
                         </DialogHeader>
                         {editedStudent && (
                             <div className="space-y-4 mt-4">
+                                <div className="flex flex-col items-center gap-3 border-b border-slate-100 pb-4">
+                                    <div className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+                                        {editedStudent.image ? (
+                                            <Image
+                                                src={editedStudent.image}
+                                                alt=""
+                                                width={96}
+                                                height={96}
+                                                className="h-full w-full object-cover"
+                                                unoptimized={editedStudent.image.startsWith("/uploads/")}
+                                            />
+                                        ) : (
+                                            <Image
+                                                src="/img/user-placeholder-image.jpg"
+                                                alt=""
+                                                width={96}
+                                                height={96}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        <LocalImageUpload
+                                            folder="students"
+                                            label={editedStudent.image ? "Change photo" : "Add photo"}
+                                            onUploadSuccess={(path) =>
+                                                setEditedStudent({ ...editedStudent, image: path })
+                                            }
+                                        />
+                                        {editedStudent.image ? (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red-600"
+                                                onClick={() =>
+                                                    setEditedStudent({ ...editedStudent, image: "" })
+                                                }
+                                            >
+                                                Remove photo
+                                            </Button>
+                                        ) : null}
+                                    </div>
+                                </div>
                                 <div>
                                     <label className="block text-sm font-medium text-primary">Name</label>
                                     <input
