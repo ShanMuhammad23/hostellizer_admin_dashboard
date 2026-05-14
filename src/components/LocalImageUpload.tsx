@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export type LocalUploadFolder = "students" | "hostel" | "documents";
+export type LocalUploadFolder = "students" | "hostel" | "documents" | "staff";
 
 interface LocalImageUploadProps {
   onUploadSuccess: (publicPath: string) => void;

@@ -231,3 +231,176 @@ ALTER TABLE public.students ADD COLUMN IF NOT EXISTS is_taking_mess boolean NOT 
 CREATE INDEX IF NOT EXISTS idx_expenses_hostelid ON public.expenses (hostelid);
 CREATE INDEX IF NOT EXISTS idx_documents_studentid ON public.documents (studentid);
 CREATE INDEX IF NOT EXISTS idx_documents_hostelid ON public.documents (hostelid);
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- G1. Staff directory & payroll (Pakistan-oriented hostel operations)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE SEQUENCE IF NOT EXISTS public.staff_id_seq AS integer START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS public.staff (
+  id integer NOT NULL DEFAULT nextval('public.staff_id_seq'::regclass),
+  hostelid uuid NOT NULL REFERENCES public.hostels(id) ON DELETE CASCADE,
+  cnic character varying(15) NOT NULL,
+  full_name character varying(255) NOT NULL,
+  father_or_spouse_name character varying(255),
+  role character varying(120) NOT NULL,
+  employment_type character varying(20) NOT NULL DEFAULT 'permanent'::character varying
+    CHECK (employment_type::text = ANY (ARRAY['permanent'::character varying::text, 'daily_wage'::character varying::text])),
+  join_date date NOT NULL DEFAULT CURRENT_DATE,
+  salary_amount_monthly numeric(14, 2) NOT NULL DEFAULT 0,
+  salary_is_gross boolean NOT NULL DEFAULT true,
+  salary_net_amount numeric(14, 2),
+  bank_name character varying(120),
+  bank_account_or_iban character varying(64),
+  easypaisa_msisdn character varying(20),
+  jazzcash_msisdn character varying(20),
+  address jsonb NOT NULL DEFAULT '{}'::jsonb,
+  phone character varying(32) NOT NULL,
+  emergency_contact_name character varying(255),
+  emergency_contact_phone character varying(32),
+  emergency_contact_relation character varying(80),
+  photo_path text,
+  compliance_documents jsonb NOT NULL DEFAULT '[]'::jsonb,
+  contract_document_path text,
+  contract_language character varying(10) DEFAULT 'ur'::character varying,
+  status character varying(20) NOT NULL DEFAULT 'active'::character varying
+    CHECK (status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text, 'terminated'::character varying::text])),
+  notes text,
+  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT staff_pkey PRIMARY KEY (id),
+  CONSTRAINT staff_hostel_cnic_key UNIQUE (hostelid, cnic)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_hostelid ON public.staff (hostelid);
+CREATE INDEX IF NOT EXISTS idx_staff_role ON public.staff (role);
+CREATE INDEX IF NOT EXISTS idx_staff_status ON public.staff (status);
+
+COMMENT ON TABLE public.staff IS 'Hostel staff directory; CNIC unique per hostel for NADRA-style records.';
+COMMENT ON COLUMN public.staff.cnic IS 'Store normalized 13-digit CNIC without dashes where possible.';
+COMMENT ON COLUMN public.staff.compliance_documents IS 'JSON array: [{type, file_path, notes, uploaded_at}] e.g. CNIC copy, police verification, medical.';
+COMMENT ON COLUMN public.staff.contract_document_path IS 'Scanned employment agreement (Urdu/English).';
+
+CREATE SEQUENCE IF NOT EXISTS public.staff_advance_ledger_id_seq AS integer START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS public.staff_advance_ledger (
+  id integer NOT NULL DEFAULT nextval('public.staff_advance_ledger_id_seq'::regclass),
+  staff_id integer NOT NULL REFERENCES public.staff(id) ON DELETE CASCADE,
+  entry_type character varying(16) NOT NULL
+    CHECK (entry_type::text = ANY (ARRAY['advance'::character varying::text, 'repayment'::character varying::text, 'payroll_deduction'::character varying::text, 'adjustment'::character varying::text])),
+  amount numeric(14, 2) NOT NULL CHECK (amount >= 0::numeric),
+  occurred_on date NOT NULL DEFAULT CURRENT_DATE,
+  reference character varying(120),
+  notes text,
+  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT staff_advance_ledger_pkey PRIMARY KEY (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_advance_staff ON public.staff_advance_ledger (staff_id);
+CREATE INDEX IF NOT EXISTS idx_staff_advance_date ON public.staff_advance_ledger (occurred_on DESC);
+
+COMMENT ON TABLE public.staff_advance_ledger IS 'Running ledger: advances, repayments, payroll deductions; disputes resolved via immutable rows.';
+
+CREATE SEQUENCE IF NOT EXISTS public.staff_leave_requests_id_seq AS integer START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS public.staff_leave_requests (
+  id integer NOT NULL DEFAULT nextval('public.staff_leave_requests_id_seq'::regclass),
+  staff_id integer NOT NULL REFERENCES public.staff(id) ON DELETE CASCADE,
+  leave_type character varying(24) NOT NULL
+    CHECK (leave_type::text = ANY (ARRAY['casual'::character varying::text, 'sick'::character varying::text, 'annual'::character varying::text, 'unpaid'::character varying::text, 'other'::character varying::text])),
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  days_count numeric(6, 2) NOT NULL,
+  is_paid boolean NOT NULL DEFAULT false,
+  status character varying(20) NOT NULL DEFAULT 'pending'::character varying
+    CHECK (status::text = ANY (ARRAY['pending'::character varying::text, 'approved'::character varying::text, 'rejected'::character varying::text, 'cancelled'::character varying::text])),
+  approved_by text,
+  notes text,
+  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT staff_leave_requests_pkey PRIMARY KEY (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_leave_staff ON public.staff_leave_requests (staff_id);
+
+CREATE SEQUENCE IF NOT EXISTS public.staff_attendance_id_seq AS integer START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS public.staff_attendance (
+  id integer NOT NULL DEFAULT nextval('public.staff_attendance_id_seq'::regclass),
+  staff_id integer NOT NULL REFERENCES public.staff(id) ON DELETE CASCADE,
+  attendance_date date NOT NULL,
+  check_in time without time zone,
+  check_out time without time zone,
+  status character varying(20) NOT NULL DEFAULT 'present'::character varying
+    CHECK (status::text = ANY (ARRAY['present'::character varying::text, 'absent'::character varying::text, 'late'::character varying::text, 'half_day'::character varying::text, 'leave'::character varying::text])),
+  marked_by_user_id integer REFERENCES public.users(id),
+  shift_code character varying(40),
+  late_minutes integer DEFAULT 0,
+  overtime_minutes integer DEFAULT 0,
+  notes text,
+  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT staff_attendance_pkey PRIMARY KEY (id),
+  CONSTRAINT staff_attendance_staff_date_key UNIQUE (staff_id, attendance_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_attendance_date ON public.staff_attendance (attendance_date DESC);
+
+CREATE SEQUENCE IF NOT EXISTS public.staff_payroll_periods_id_seq AS integer START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS public.staff_payroll_periods (
+  id integer NOT NULL DEFAULT nextval('public.staff_payroll_periods_id_seq'::regclass),
+  hostelid uuid NOT NULL REFERENCES public.hostels(id) ON DELETE CASCADE,
+  year smallint NOT NULL CHECK (year >= 2000 AND year <= 2100),
+  month smallint NOT NULL CHECK (month >= 1 AND month <= 12),
+  status character varying(20) NOT NULL DEFAULT 'draft'::character varying
+    CHECK (status::text = ANY (ARRAY['draft'::character varying::text, 'locked'::character varying::text, 'paid'::character varying::text])),
+  notes text,
+  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT staff_payroll_periods_pkey PRIMARY KEY (id),
+  CONSTRAINT staff_payroll_periods_hostel_month_key UNIQUE (hostelid, year, month)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_payroll_periods_hostel ON public.staff_payroll_periods (hostelid);
+
+CREATE SEQUENCE IF NOT EXISTS public.staff_payroll_entries_id_seq AS integer START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS public.staff_payroll_entries (
+  id integer NOT NULL DEFAULT nextval('public.staff_payroll_entries_id_seq'::regclass),
+  payroll_period_id integer NOT NULL REFERENCES public.staff_payroll_periods(id) ON DELETE CASCADE,
+  staff_id integer NOT NULL REFERENCES public.staff(id) ON DELETE CASCADE,
+  base_salary numeric(14, 2) NOT NULL DEFAULT 0,
+  overtime_amount numeric(14, 2) NOT NULL DEFAULT 0,
+  holiday_duty_amount numeric(14, 2) NOT NULL DEFAULT 0,
+  eid_bonus_amount numeric(14, 2) NOT NULL DEFAULT 0,
+  mess_allowance_amount numeric(14, 2) NOT NULL DEFAULT 0,
+  other_additions jsonb NOT NULL DEFAULT '[]'::jsonb,
+  advance_deduction_amount numeric(14, 2) NOT NULL DEFAULT 0,
+  absence_deduction_amount numeric(14, 2) NOT NULL DEFAULT 0,
+  damage_charge_amount numeric(14, 2) NOT NULL DEFAULT 0,
+  other_deductions jsonb NOT NULL DEFAULT '[]'::jsonb,
+  gross_earnings numeric(14, 2) NOT NULL DEFAULT 0,
+  total_deductions numeric(14, 2) NOT NULL DEFAULT 0,
+  net_payable numeric(14, 2) NOT NULL DEFAULT 0,
+  salary_slip_path text,
+  slip_locale character varying(8) DEFAULT 'ur_PK'::character varying,
+  signed_by_name character varying(255),
+  signed_at timestamp without time zone,
+  notes text,
+  created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT staff_payroll_entries_pkey PRIMARY KEY (id),
+  CONSTRAINT staff_payroll_entries_period_staff_key UNIQUE (payroll_period_id, staff_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_payroll_entries_staff ON public.staff_payroll_entries (staff_id);
+
+COMMENT ON COLUMN public.staff_payroll_entries.other_additions IS 'JSON array: [{label, amount}] for night premium, custom bonuses.';
+COMMENT ON COLUMN public.staff_payroll_entries.other_deductions IS 'JSON array: [{label, amount}] for misc charges.';
+COMMENT ON COLUMN public.staff_payroll_entries.net_payable IS 'Final PKR payable after all adds/deducts; slip PDF path optional in salary_slip_path.';
+
+-- Link ledger repayments/deductions to a posted payroll line (added after payroll table exists)
+ALTER TABLE public.staff_advance_ledger
+  ADD COLUMN IF NOT EXISTS payroll_entry_id integer REFERENCES public.staff_payroll_entries(id) ON DELETE SET NULL;

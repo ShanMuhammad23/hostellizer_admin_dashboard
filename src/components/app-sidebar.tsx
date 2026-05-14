@@ -11,7 +11,8 @@ import {
   IconPaperBag,
   IconSettings,
   IconMessage,
-  IconUserCheck
+  IconUserCheck,
+  IconIdBadge2,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -43,6 +44,11 @@ const data = {
       title: "All Students",
       url: "/dashboard/students",
       icon: IconUsers,
+    },
+    {
+      title: "Staff",
+      url: "/dashboard/staff",
+      icon: IconIdBadge2,
     },
     {
       title:"Mark Attendance",

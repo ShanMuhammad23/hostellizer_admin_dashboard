@@ -10,7 +10,7 @@ const MIME_TO_EXT: Record<string, string> = {
   "application/pdf": ".pdf",
 };
 
-export const UPLOAD_FOLDERS = ["students", "hostel", "documents"] as const;
+export const UPLOAD_FOLDERS = ["students", "hostel", "documents", "staff"] as const;
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
 
 const IMAGE_MIMES = new Set([

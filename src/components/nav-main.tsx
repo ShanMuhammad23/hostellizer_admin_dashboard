@@ -24,6 +24,11 @@ export function NavMain({
 }) {
   const pathname = usePathname()
 
+  function isActiveNav(url: string) {
+    if (url === "/dashboard") return pathname === "/dashboard"
+    return pathname === url || pathname.startsWith(`${url}/`)
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupContent>
@@ -32,8 +37,8 @@ export function NavMain({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton 
                 asChild
-                isActive={pathname === item.url}
-                className={cn(pathname === item.url && "bg-primary text-white")}
+                isActive={isActiveNav(item.url)}
+                className={cn(isActiveNav(item.url) && "bg-primary text-white")}
                 tooltip={item.title}
               >
                 <Link href={item.url}>

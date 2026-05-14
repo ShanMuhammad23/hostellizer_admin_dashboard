@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const folder = parseFolder(folderRaw);
     if (!folder) {
       return NextResponse.json(
-        { error: "Invalid or missing folder (use students, hostel, or documents)" },
+        { error: "Invalid or missing folder (use students, hostel, documents, or staff)" },
         { status: 400 }
       );
     }
