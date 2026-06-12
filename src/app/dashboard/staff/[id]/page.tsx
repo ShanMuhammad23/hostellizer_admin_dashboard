@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { StaffForm } from "@/components/staff/StaffForm";
+import { getUploadServeUrl } from "@/lib/upload-url";
 import MegaLoader from "@/components/ui/MegaLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,7 +332,7 @@ export default function StaffDetailPage() {
       <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">
         {photo ? (
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border">
-            <Image src={photo} alt="" fill className="object-cover" unoptimized />
+            <Image src={getUploadServeUrl(photo)} alt="" fill className="object-cover" unoptimized />
           </div>
         ) : (
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border bg-muted text-2xl font-semibold text-muted-foreground">

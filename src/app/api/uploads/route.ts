@@ -5,6 +5,7 @@ import {
   UPLOAD_FOLDERS,
   type UploadFolder,
 } from "@/lib/local-upload";
+import { getUploadServeUrl } from "@/lib/upload-url";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -65,7 +66,10 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const publicPath = await saveUploadedFile(buffer, mime, folder);
 
-    return NextResponse.json({ path: publicPath });
+    return NextResponse.json({
+      path: publicPath,
+      url: getUploadServeUrl(publicPath),
+    });
   } catch (e) {
     console.error("Upload error:", e);
     const message = e instanceof Error ? e.message : "Upload failed";

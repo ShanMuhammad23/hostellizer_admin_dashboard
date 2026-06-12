@@ -6,6 +6,7 @@ import Image from "next/image"
 import { EditProfileForm } from "@/components/EditProfileForm"
 import { toast } from "sonner"
 import { LocalImageUpload } from "@/components/LocalImageUpload"
+import { getUploadServeUrl } from "@/lib/upload-url"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 export interface Amenities {
@@ -179,7 +180,7 @@ const Profile = () => {
                     <div className="relative h-48 sm:h-64 md:h-96">
                         {hostel.hostel_images && hostel.hostel_images.length > 0 ? (
                             <Image
-                                src={hostel.hostel_images[activeImageIndex]}
+                                src={getUploadServeUrl(hostel.hostel_images[activeImageIndex])}
                                 alt={hostel.hostel_name}
                                 fill
                                 className="object-cover inset-0"

@@ -30,6 +30,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import Image from "next/image";
 import { LocalImageUpload } from "@/components/LocalImageUpload";
+import { getUploadServeUrl, isPrivateUploadPath, isStoredUploadPath } from "@/lib/upload-url";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -150,7 +151,7 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
       const payload: Record<string, unknown> = { ...values };
       if (profilePath === "") {
         payload.profileImagePath = null;
-      } else if (profilePath.startsWith("/uploads/students/")) {
+      } else if (isStoredUploadPath(profilePath)) {
         payload.profileImagePath = profilePath;
       }
 
@@ -194,12 +195,12 @@ export function EditStudentForm({ student, open, onOpenChange, onStudentUpdated 
               <div className="relative h-20 w-20 overflow-hidden rounded-full border">
                 {profilePath ? (
                   <Image
-                    src={profilePath}
+                    src={getUploadServeUrl(profilePath)}
                     alt=""
                     width={80}
                     height={80}
                     className="h-full w-full object-cover"
-                    unoptimized={profilePath.startsWith("/uploads/")}
+                    unoptimized={isPrivateUploadPath(profilePath)}
                   />
                 ) : (
                   <Image

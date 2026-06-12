@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type postgres from "postgres";
 import { sql } from "@/lib/db";
 import { getAuthenticatedHostelId } from "@/lib/auth";
-import { deleteLocalUploadFile } from "@/lib/local-upload";
+import { deleteLocalUploadFile, isValidStoredUploadPath } from "@/lib/local-upload";
 
 async function resolveParamsId(
   params: Promise<{ id: string }> | { id: string }
@@ -17,7 +17,7 @@ function parseStudentProfilePath(
   if (!("profileImagePath" in body) && !("image" in body)) return undefined;
   const v = body.profileImagePath ?? body.image;
   if (v === null || v === "") return null;
-  if (typeof v === "string" && v.startsWith("/uploads/students/")) return v;
+  if (typeof v === "string" && isValidStoredUploadPath(v, ["students"])) return v;
   return undefined;
 }
 

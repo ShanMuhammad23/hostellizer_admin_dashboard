@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getAuthenticatedHostelId } from "@/lib/auth";
+import { isValidStoredUploadPath } from "@/lib/local-upload";
 
 function normalizeCnic(raw: unknown): string {
   if (typeof raw !== "string") return "";
@@ -108,13 +109,12 @@ export async function POST(request: Request) {
 
     const photoPath =
       typeof body.photoPath === "string" &&
-      body.photoPath.startsWith("/uploads/staff/")
+      isValidStoredUploadPath(body.photoPath, ["staff"])
         ? body.photoPath
         : null;
     const contractPath =
       typeof body.contractDocumentPath === "string" &&
-      (body.contractDocumentPath.startsWith("/uploads/staff/") ||
-        body.contractDocumentPath.startsWith("/uploads/documents/"))
+      isValidStoredUploadPath(body.contractDocumentPath, ["staff", "documents"])
         ? body.contractDocumentPath
         : null;
 

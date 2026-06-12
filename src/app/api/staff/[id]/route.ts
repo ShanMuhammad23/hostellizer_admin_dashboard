@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getAuthenticatedHostelId } from "@/lib/auth";
-import { deleteLocalUploadFile } from "@/lib/local-upload";
+import { deleteLocalUploadFile, isValidStoredUploadPath } from "@/lib/local-upload";
 
 async function resolveId(
   params: Promise<{ id: string }> | { id: string }
@@ -139,7 +139,7 @@ export async function PUT(
     const nextPhoto =
       "photoPath" in body
         ? typeof body.photoPath === "string" &&
-          body.photoPath.startsWith("/uploads/staff/")
+          isValidStoredUploadPath(body.photoPath, ["staff"])
           ? body.photoPath
           : null
         : (existing.photo_path as string | null);
@@ -147,8 +147,7 @@ export async function PUT(
     const nextContract =
       "contractDocumentPath" in body
         ? typeof body.contractDocumentPath === "string" &&
-          (body.contractDocumentPath.startsWith("/uploads/staff/") ||
-            body.contractDocumentPath.startsWith("/uploads/documents/"))
+          isValidStoredUploadPath(body.contractDocumentPath, ["staff", "documents"])
           ? body.contractDocumentPath
           : null
         : (existing.contract_document_path as string | null);

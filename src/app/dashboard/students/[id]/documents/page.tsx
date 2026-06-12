@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { LocalImageUpload } from '@/components/LocalImageUpload'
+import { getUploadServeUrl } from '@/lib/upload-url'
 import { 
   FileText, 
   Upload, 
@@ -299,7 +300,7 @@ export default function StudentDocuments({ params }: { params: { id: string } })
                       <div className="relative">
                         <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
                           <img
-                            src={document.url}
+                            src={getUploadServeUrl(document.url)}
                             alt={docType.title}
                             className="w-full h-full object-cover"
                           />
@@ -336,7 +337,7 @@ export default function StudentDocuments({ params }: { params: { id: string } })
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => window.open(document.url, '_blank')}
+                          onClick={() => window.open(getUploadServeUrl(document.url), '_blank')}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -435,7 +436,7 @@ export default function StudentDocuments({ params }: { params: { id: string } })
               <div className="space-y-4">
                 <div className="text-center">
                   <img
-                    src={previewDocument.url}
+                    src={getUploadServeUrl(previewDocument.url)}
                     alt="Document preview"
                     className="max-w-full max-h-96 mx-auto rounded-lg shadow-lg"
                   />
@@ -479,7 +480,7 @@ export default function StudentDocuments({ params }: { params: { id: string } })
               </Button>
               {previewDocument && (
                 <Button
-                  onClick={() => window.open(previewDocument.url, '_blank')}
+                  onClick={() => window.open(getUploadServeUrl(previewDocument.url), '_blank')}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download

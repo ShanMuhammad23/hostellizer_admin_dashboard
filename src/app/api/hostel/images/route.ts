@@ -3,7 +3,7 @@ import { sql } from "@/lib/db";
 import { getAuthenticatedHostelId } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { deleteLocalUploadFile } from "@/lib/local-upload";
+import { deleteLocalUploadFile, isValidStoredUploadPath } from "@/lib/local-upload";
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,7 +58,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const imageUrl = (body.imageUrl ?? body.imagePath) as string | undefined;
 
-    if (!imageUrl || typeof imageUrl !== "string") {
+    if (
+      !imageUrl ||
+      typeof imageUrl !== "string" ||
+      !isValidStoredUploadPath(imageUrl, ["hostel"])
+    ) {
       return NextResponse.json(
         { success: false, message: "No image path provided" },
         { status: 400 }

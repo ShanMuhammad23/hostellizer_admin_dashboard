@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useSession } from "next-auth/react";
 import MegaLoader from '@/components/ui/MegaLoader';
 import Image from "next/image";
+import { getUploadServeUrl, isPrivateUploadPath } from "@/lib/upload-url";
 interface Student {
   id: string;
   name: string;
@@ -216,12 +217,12 @@ export default function StudentsPage() {
               <div className="relative hidden h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 sm:block">
                 {student.image ? (
                   <Image
-                    src={student.image}
+                    src={getUploadServeUrl(student.image)}
                     alt=""
                     width={40}
                     height={40}
                     className="h-full w-full object-cover"
-                    unoptimized={student.image.startsWith("/uploads/")}
+                    unoptimized={isPrivateUploadPath(student.image)}
                   />
                 ) : (
                   <Image

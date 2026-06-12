@@ -25,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 import { toast } from "sonner";
 import { LocalImageUpload } from "@/components/LocalImageUpload";
+import { getUploadServeUrl } from "@/lib/upload-url";
 
 const schema = z.object({
   cnic: z.string().min(13, "CNIC must be at least 13 digits"),
@@ -537,7 +538,7 @@ export function StaffForm({
           <p className="text-sm font-medium">Photo (ID card)</p>
           {photoPath ? (
             <div className="relative h-24 w-24 overflow-hidden rounded-md border">
-              <Image src={photoPath} alt="" fill className="object-cover" unoptimized />
+              <Image src={getUploadServeUrl(photoPath)} alt="" fill className="object-cover" unoptimized />
             </div>
           ) : null}
           <LocalImageUpload
@@ -550,7 +551,7 @@ export function StaffForm({
         <div className="space-y-2 border-t pt-4">
           <p className="text-sm font-medium">Contract (PDF)</p>
           {contractPath ? (
-            <a href={contractPath} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
+            <a href={getUploadServeUrl(contractPath)} target="_blank" rel="noreferrer" className="text-sm text-primary underline">
               View uploaded contract
             </a>
           ) : null}
@@ -567,7 +568,7 @@ export function StaffForm({
           {compliance.map((d, i) => (
             <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
               <span className="font-medium">{d.type}</span>
-              <a href={d.file_path} target="_blank" rel="noreferrer" className="text-primary underline">
+              <a href={getUploadServeUrl(d.file_path)} target="_blank" rel="noreferrer" className="text-primary underline">
                 File
               </a>
               <Button

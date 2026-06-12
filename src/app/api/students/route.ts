@@ -1,6 +1,7 @@
 import { sql } from '@/lib/db';
 
 import { getAuthenticatedHostelId } from '@/lib/auth';
+import { isValidStoredUploadPath } from '@/lib/local-upload';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
 
     const imagePath =
       typeof profileImagePath === "string" &&
-      profileImagePath.startsWith("/uploads/students/")
+      isValidStoredUploadPath(profileImagePath, ["students"])
         ? profileImagePath
         : null;
 

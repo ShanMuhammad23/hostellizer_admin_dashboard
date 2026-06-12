@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
 import { getAuthenticatedHostelId } from '@/lib/auth';
+import { isValidStoredUploadPath } from '@/lib/local-upload';
 
 // GET - Fetch all documents for a student
 export async function GET(
@@ -78,7 +79,12 @@ export async function POST(
     const { documentType, imageUrl, fileName, status = 'pending' } = body;
 
     // Validate required fields
-    if (!documentType || !imageUrl) {
+    if (
+      !documentType ||
+      !imageUrl ||
+      typeof imageUrl !== "string" ||
+      !isValidStoredUploadPath(imageUrl, ["documents"])
+    ) {
       return NextResponse.json(
         { success: false, message: 'Document type and image URL are required' },
         { status: 400 }

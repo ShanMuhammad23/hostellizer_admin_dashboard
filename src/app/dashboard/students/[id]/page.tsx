@@ -21,6 +21,7 @@ import { MessAttendance } from '@/components/MessAttendance';
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge"
 import { LocalImageUpload } from "@/components/LocalImageUpload";
+import { getUploadServeUrl, isPrivateUploadPath } from "@/lib/upload-url";
 // Register the plugin
 interface WindowWithJsPDF extends Window {
     jsPDF: typeof jsPDF;
@@ -324,12 +325,12 @@ export default function StudentDetails({ params }: { params: { id: string } }) {
                                 <div className="h-40 w-40 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
                                     {student.image ? (
                                         <Image
-                                            src={student.image}
+                                            src={getUploadServeUrl(student.image)}
                                             alt={student.name}
                                             width={160}
                                             height={160}
                                             className="h-full w-full object-cover"
-                                            unoptimized={student.image.startsWith("/uploads/")}
+                                            unoptimized={isPrivateUploadPath(student.image)}
                                         />
                                     ) : (
                                         <Image src='/img/user-placeholder-image.jpg' alt='User Placeholder' width={160} height={160} className="h-full w-full object-cover" />
@@ -451,12 +452,12 @@ export default function StudentDetails({ params }: { params: { id: string } }) {
                                     <div className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
                                         {editedStudent.image ? (
                                             <Image
-                                                src={editedStudent.image}
+                                                src={getUploadServeUrl(editedStudent.image)}
                                                 alt=""
                                                 width={96}
                                                 height={96}
                                                 className="h-full w-full object-cover"
-                                                unoptimized={editedStudent.image.startsWith("/uploads/")}
+                                                unoptimized={isPrivateUploadPath(editedStudent.image)}
                                             />
                                         ) : (
                                             <Image

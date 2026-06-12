@@ -40,6 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local user uploads (keep public/uploads/.gitkeep)
+# Private user uploads (keep storage/uploads/.gitkeep)
+/storage/uploads/**
+!/storage/uploads/.gitkeep
+
+# Legacy public uploads folder
 /public/uploads/**
 !/public/uploads/.gitkeep
