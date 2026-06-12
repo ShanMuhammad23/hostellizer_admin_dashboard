@@ -80,8 +80,26 @@ export async function POST(request: Request) {
       istakingmess === "true" ||
       istakingmess === 1;
 
-    // Validate required fields
-    if (!name || !email || !phone || !address || !roomNumber || !status || !accomodationType || !monthlyRent) {
+    const parsedRoomNumber =
+      roomNumber === null || roomNumber === undefined || roomNumber === ""
+        ? null
+        : Number(roomNumber);
+    const parsedMonthlyRent =
+      monthlyRent === null || monthlyRent === undefined || monthlyRent === ""
+        ? null
+        : Number(monthlyRent);
+
+    if (
+      !name ||
+      !email ||
+      !phone ||
+      !address ||
+      !status ||
+      !accomodationType ||
+      parsedMonthlyRent == null ||
+      Number.isNaN(parsedMonthlyRent) ||
+      (parsedRoomNumber !== null && Number.isNaN(parsedRoomNumber))
+    ) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -121,10 +139,10 @@ export async function POST(request: Request) {
         ${email},
         ${phone},
         ${sql.json(addr)},
-        ${roomNumber},
+        ${parsedRoomNumber},
         ${status},
         ${accomodationType},
-        ${monthlyRent},
+        ${parsedMonthlyRent},
         ${paymentStatusNorm},
         ${paymentDueDate},
         ${isTakingMess},

@@ -36,6 +36,7 @@ const navMain: NavMainItem[] = [
     icon: IconUsers,
     items: [
       { title: "All students", url: "/dashboard/students" },
+      { title: "Guest register", url: "/dashboard/guests" },
       { title: "Room attendance", url: "/dashboard/room-attendance" },
     ],
   },

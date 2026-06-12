@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:guests": "node scripts/run-migrate-guests.mjs"
   },
   "dependencies": {
     "@bprogress/core": "^1.3.4",

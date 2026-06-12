@@ -7,11 +7,10 @@ import { SectionCards } from "@/components/section-cards"
 import LatestApplications from "@/components/LatestApplications"
 import { Suspense } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { DashboardAlertsStrip } from "@/components/dashboard/DashboardAlertsStrip"
+import { DashboardAlertsAndQuickActions } from "@/components/dashboard/DashboardAlertsAndQuickActions"
 import { RevenueTrendChart } from "@/components/dashboard/RevenueTrendChart"
 import { OccupancyRoomVisual } from "@/components/dashboard/OccupancyRoomVisual"
 import { DashboardBottomStrip } from "@/components/dashboard/DashboardBottomStrip"
-import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions"
 
 async function getSession() {
   return await getServerSession(authOptions)
@@ -19,7 +18,7 @@ async function getSession() {
 
 const LoadingSkeleton = () => (
   <div className="flex flex-1 flex-col gap-4">
-    <Skeleton className="h-24 w-full rounded-lg" />
+    <Skeleton className="h-36 w-full rounded-lg" />
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
       {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton key={i} className="h-24 rounded-lg" />
@@ -40,8 +39,7 @@ const LoadingSkeleton = () => (
 function DashboardContent() {
   return (
     <div className="flex flex-col gap-4 md:gap-5  mx-auto w-full px-2">
-      <DashboardAlertsStrip />
-      <DashboardQuickActions />
+      <DashboardAlertsAndQuickActions />
       <SectionCards />
       <section aria-label="Primary workspace" className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">

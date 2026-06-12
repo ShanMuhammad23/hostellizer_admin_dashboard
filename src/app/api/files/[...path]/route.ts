@@ -1,4 +1,4 @@
-import { readFile } from "fs/promises";
+import { access, readFile } from "fs/promises";
 import { NextResponse } from "next/server";
 import { getAuthenticatedHostelId } from "@/lib/auth";
 import { hostelCanAccessUpload } from "@/lib/upload-access";
@@ -47,6 +47,12 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    try {
+      await access(absolutePath);
+    } catch {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     const buffer = await readFile(absolutePath);
     return new NextResponse(buffer, {
       status: 200,
@@ -58,6 +64,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("GET /api/files:", error);
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

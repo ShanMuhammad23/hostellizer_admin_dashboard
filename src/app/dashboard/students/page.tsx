@@ -11,8 +11,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from "next-auth/react";
 import MegaLoader from '@/components/ui/MegaLoader';
-import Image from "next/image";
-import { getUploadServeUrl, isPrivateUploadPath } from "@/lib/upload-url";
+import { UploadAvatar } from "@/components/UploadAvatar";
 interface Student {
   id: string;
   name: string;
@@ -227,26 +226,12 @@ export default function StudentsPage() {
             className="block sm:grid sm:grid-cols-5 gap-4 p-4 hover:bg-purple-50 transition-colors duration-200 cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="relative hidden h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 sm:block">
-                {student.image ? (
-                  <Image
-                    src={getUploadServeUrl(student.image)}
-                    alt=""
-                    width={40}
-                    height={40}
-                    className="h-full w-full object-cover"
-                    unoptimized={isPrivateUploadPath(student.image)}
-                  />
-                ) : (
-                  <Image
-                    src="/img/user-placeholder-image.jpg"
-                    alt=""
-                    width={40}
-                    height={40}
-                    className="h-full w-full object-cover"
-                  />
-                )}
-              </div>
+              <UploadAvatar
+                path={student.image}
+                alt={student.name}
+                size={40}
+                className="hidden h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 sm:block"
+              />
               <div className="flex flex-col sm:block mb-2 sm:mb-0">
                 <span className="text-xs text-gray-500 sm:hidden">Student Name</span>
                 <div className="text-primary font-medium">{student.name}</div>

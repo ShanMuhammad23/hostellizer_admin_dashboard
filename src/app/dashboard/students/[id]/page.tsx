@@ -18,15 +18,9 @@ import {
 } from "@/components/ui/dialog"
 import { AttendanceCalendar } from '@/components/AttendanceCalendar';
 import { MessAttendance } from '@/components/MessAttendance';
-import Image from 'next/image';
 import { Badge } from "@/components/ui/badge"
 import { LocalImageUpload } from "@/components/LocalImageUpload";
-import { getUploadServeUrl, isPrivateUploadPath } from "@/lib/upload-url";
-// Register the plugin
-interface WindowWithJsPDF extends Window {
-    jsPDF: typeof jsPDF;
-}
-(window as unknown as WindowWithJsPDF).jsPDF = jsPDF; // For some environments, this helps
+import { UploadAvatar } from "@/components/UploadAvatar";
 
 interface Address {
     street: string;
@@ -322,20 +316,12 @@ export default function StudentDetails({ params }: { params: { id: string } }) {
                     <div className="p-4 sm:p-6">
                         <div className="flex flex-col sm:flex-row  sm:justify-between gap-4">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                                <div className="h-40 w-40 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
-                                    {student.image ? (
-                                        <Image
-                                            src={getUploadServeUrl(student.image)}
-                                            alt={student.name}
-                                            width={160}
-                                            height={160}
-                                            className="h-full w-full object-cover"
-                                            unoptimized={isPrivateUploadPath(student.image)}
-                                        />
-                                    ) : (
-                                        <Image src='/img/user-placeholder-image.jpg' alt='User Placeholder' width={160} height={160} className="h-full w-full object-cover" />
-                                    )}
-                                </div>
+                                <UploadAvatar
+                                    path={student.image}
+                                    alt={student.name}
+                                    size={160}
+                                    className="h-40 w-40 shrink-0 overflow-hidden rounded-full border border-slate-200"
+                                />
                                 <div className="flex flex-col  gap-2 sm:gap-4">
                                     <h1 className="text-xl sm:text-4xl font-bold text-primary flex flex-wrap items-center gap-2">
                                         {student.name}
@@ -450,24 +436,12 @@ export default function StudentDetails({ params }: { params: { id: string } }) {
                             <div className="space-y-4 mt-4">
                                 <div className="flex flex-col items-center gap-3 border-b border-slate-100 pb-4">
                                     <div className="relative h-24 w-24 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
-                                        {editedStudent.image ? (
-                                            <Image
-                                                src={getUploadServeUrl(editedStudent.image)}
-                                                alt=""
-                                                width={96}
-                                                height={96}
-                                                className="h-full w-full object-cover"
-                                                unoptimized={isPrivateUploadPath(editedStudent.image)}
-                                            />
-                                        ) : (
-                                            <Image
-                                                src="/img/user-placeholder-image.jpg"
-                                                alt=""
-                                                width={96}
-                                                height={96}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        )}
+                                        <UploadAvatar
+                                            path={editedStudent.image}
+                                            alt={editedStudent.name}
+                                            size={96}
+                                            className="h-full w-full"
+                                        />
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center gap-2">
                                         <LocalImageUpload

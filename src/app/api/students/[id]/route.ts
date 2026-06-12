@@ -229,11 +229,21 @@ export async function PUT(
     const name = body.name as string;
     const email = body.email as string;
     const phone = body.phone as string;
-    const roomNumber = (body.roomNumber ?? body.roomnumber) as number;
+    const roomNumberRaw = body.roomNumber ?? body.roomnumber;
+    const roomNumber =
+      roomNumberRaw === null ||
+      roomNumberRaw === undefined ||
+      roomNumberRaw === ""
+        ? null
+        : Number(roomNumberRaw);
     const status = body.status as string;
     const accomodationType = (body.accomodationType ??
       body.accomodationtype) as string;
-    const monthlyRent = (body.monthlyRent ?? body.monthlyrent) as number;
+    const monthlyRentRaw = body.monthlyRent ?? body.monthlyrent;
+    const monthlyRent =
+      monthlyRentRaw === null || monthlyRentRaw === undefined || monthlyRentRaw === ""
+        ? null
+        : Number(monthlyRentRaw);
 
     const paymentStatusRaw = (body.paymentStatus ??
       body.paymentstatus) as string | undefined;
@@ -265,10 +275,11 @@ export async function PUT(
       !email ||
       !phone ||
       address == null ||
-      roomNumber == null ||
       !status ||
       !accomodationType ||
-      monthlyRent == null
+      monthlyRent == null ||
+      Number.isNaN(monthlyRent) ||
+      (roomNumber !== null && Number.isNaN(roomNumber))
     ) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },

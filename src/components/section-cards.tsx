@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Card,
-  CardDescription,
   CardHeader,
   CardTitle,
   CardContent,
@@ -38,18 +37,46 @@ function pctDelta(curr: number, prev: number): number | null {
   return ((curr - prev) / prev) * 100;
 }
 
+type StatCardVariant = "primary" | "secondary";
+
+const variantStyles: Record<
+  StatCardVariant,
+  {
+    card: string;
+    muted: string;
+    trendGood: string;
+    trendBad: string;
+  }
+> = {
+  primary: {
+    card: "bg-primary text-primary-foreground border-primary/25",
+    muted: "text-primary-foreground/80",
+    trendGood: "text-emerald-100",
+    trendBad: "text-red-100",
+  },
+  secondary: {
+    card: "bg-secondary text-secondary-foreground border-border",
+    muted: "text-secondary-foreground/85",
+    trendGood: "text-emerald-800",
+    trendBad: "text-red-700",
+  },
+};
+
 function TrendLine({
   pct,
   invert = false,
   suffix = "vs prior 30d",
+  variant = "secondary",
 }: {
   pct: number | null;
   invert?: boolean;
   suffix?: string;
+  variant?: StatCardVariant;
 }) {
+  const styles = variantStyles[variant];
   if (pct == null || Number.isNaN(pct)) {
     return (
-      <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+      <p className={`mt-1 text-[10px] leading-tight ${styles.muted}`}>
         {suffix}: —
       </p>
     );
@@ -58,12 +85,12 @@ function TrendLine({
   return (
     <p
       className={`mt-1 flex items-center gap-1 text-[10px] font-medium leading-tight ${
-        good ? "text-emerald-600" : "text-red-600"
+        good ? styles.trendGood : styles.trendBad
       }`}
     >
       <span>{pct >= 0 ? "↑" : "↓"}</span>
       <span>{Math.abs(Math.round(pct))}%</span>
-      <span className="font-normal text-muted-foreground">{suffix}</span>
+      <span className={`font-normal ${styles.muted}`}>{suffix}</span>
     </p>
   );
 }
@@ -142,23 +169,31 @@ export function SectionCards() {
   const cap = Math.max(1, (o.total_rooms || 0) * 2);
   const vacPct = (num(o.vacancies_available) / cap) * 100;
 
-  const cards = [
+  const cards: {
+    title: string;
+    value: string | number;
+    money: boolean;
+    icon: typeof Users;
+    variant: StatCardVariant;
+    trend: ReactNode;
+  }[] = [
     {
       title: "Students",
       value: o.total_students,
       money: false,
       icon: Users,
-      color: "text-white",
-      valueColor: "text-white",
-      descriptionColor: "text-white",
-      bgColor: "bg-primary",
-      borderColor: "border",
-      hoverBorderColor: "hover:border-primary",
+      variant: "primary",
       trend: (
         <>
-          <TrendLine pct={studentFlowPct} suffix="new vs prior 30d" />
+          <TrendLine
+            pct={studentFlowPct}
+            suffix="new vs prior 30d"
+            variant="primary"
+          />
           {new30 > 0 ? (
-            <p className="text-[10px] text-muted-foreground leading-tight">
+            <p
+              className={`text-[10px] leading-tight ${variantStyles.primary.muted}`}
+            >
               +{new30} joined last 30 days
             </p>
           ) : null}
@@ -170,14 +205,11 @@ export function SectionCards() {
       value: o.total_rooms,
       money: false,
       icon: Home,
-      color: "text-primary",
-      valueColor: "text-black",
-      descriptionColor: "text-black",
-      bgColor: "bg-secondary",
-      borderColor: "border",
-      hoverBorderColor: "hover:border-primary",
+      variant: "secondary",
       trend: (
-        <p className="mt-1 text-[10px] text-muted-foreground leading-tight">
+        <p
+          className={`mt-1 text-[10px] leading-tight ${variantStyles.secondary.muted}`}
+        >
           {occPct > 0 ? `${Math.round(occPct)}% beds filled` : "—"}
         </p>
       ),
@@ -187,14 +219,11 @@ export function SectionCards() {
       value: o.vacancies_available,
       money: false,
       icon: Bed,
-      color: "text-white",
-      valueColor: "text-white",
-      descriptionColor: "text-white",
-      bgColor: "bg-primary",
-      borderColor: "border",
-      hoverBorderColor: "hover:border-primary",
+      variant: "primary",
       trend: (
-        <p className="mt-1 text-[10px] text-muted-foreground leading-tight">
+        <p
+          className={`mt-1 text-[10px] leading-tight ${variantStyles.primary.muted}`}
+        >
           {vacPct > 0 ? `${Math.round(vacPct)}% of beds free` : "—"}
         </p>
       ),
@@ -204,69 +233,53 @@ export function SectionCards() {
       value: o.total_rent_collected,
       money: true,
       icon: Wallet,
-      color: "text-white",
-      valueColor: "text-black",
-      descriptionColor: "text-black",
-      bgColor: "bg-secondary",
-      borderColor: "border",
-      hoverBorderColor: "hover:border-green-400",
-      trend: <TrendLine pct={rentPct} />,
+      variant: "secondary",
+      trend: <TrendLine pct={rentPct} variant="secondary" />,
     },
     {
       title: "Expenses",
       value: o.total_expenses,
       money: true,
       icon: Receipt,
-      color: "text-white",
-      valueColor: "text-white",
-      descriptionColor: "text-white",
-      bgColor: "bg-primary",
-      borderColor: "border-purple-200",
-      hoverBorderColor: "hover:border-primary",
-      trend: <TrendLine pct={expPct} invert />,
+      variant: "primary",
+      trend: <TrendLine pct={expPct} invert variant="primary" />,
     },
     {
       title: "Profit",
       value: o.profit,
       money: true,
       icon: TrendingUp,
-      color: "text-black",
-      valueColor: "text-black",
-      descriptionColor: "text-black",
-      bgColor: "bg-secondary",
-      borderColor: "border-green-200",
-      hoverBorderColor: "hover:border-primary",
-      trend: <TrendLine pct={profitPct} />,
+      variant: "secondary",
+      trend: <TrendLine pct={profitPct} variant="secondary" />,
     },
   ];
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full  mx-auto px-2">
-      {cards.map((card, index) => (
-        <Card
-          key={index}
-          className={`${card.bgColor} gap-2 py-3 shadow-none backdrop-blur-sm border ${card.borderColor} ${card.hoverBorderColor} transition-all duration-200 w-full min-w-0`}
-        >
-          <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 px-3 py-0 pb-1">
-            <CardTitle
-              className={`text-[11px] sm:text-xs font-medium leading-snug ${card.descriptionColor} line-clamp-2`}
-            >
-              {card.title}
-            </CardTitle>
-            <card.icon className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${card.color}`} />
-          </CardHeader>
-          <CardContent className="px-3 pt-0 pb-1">
-            <CardDescription
-              className={`text-base sm:text-lg font-bold tabular-nums tracking-tight ${card.valueColor} line-clamp-2`}
-            >
-              {card.money
-                ? `PKR ${Number(card.value).toLocaleString()}`
-                : card.value}
-            </CardDescription>
-            {card.trend}
-          </CardContent>
-        </Card>
-      ))}
+      {cards.map((card, index) => {
+        const styles = variantStyles[card.variant];
+        return (
+          <Card
+            key={index}
+            className={`${styles.card} gap-2 py-3 shadow-none backdrop-blur-sm transition-all duration-200 w-full min-w-0 hover:brightness-[0.98]`}
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 px-3 py-0 pb-1">
+              <CardTitle className="text-[11px] sm:text-xs font-medium leading-snug line-clamp-2">
+                {card.title}
+              </CardTitle>
+              <card.icon className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-90" />
+            </CardHeader>
+            <CardContent className="px-3 pt-0 pb-1">
+              <p className="text-base sm:text-lg font-bold tabular-nums tracking-tight line-clamp-2">
+                {card.money
+                  ? `PKR ${Number(card.value).toLocaleString()}`
+                  : card.value}
+              </p>
+              {card.trend}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
