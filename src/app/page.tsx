@@ -203,8 +203,8 @@ export default function Page() {
 
 
 
-          <section className="py-20 bg-gradient-to-br from-white to-gray-50">
-            <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <section className="py-20 bg-gradient-to-br max-w-7xl mx-auto from-white to-gray-50">
+            <div className="px-4 mx-auto  sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

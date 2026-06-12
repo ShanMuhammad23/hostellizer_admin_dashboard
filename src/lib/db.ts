@@ -5,15 +5,18 @@ if (!connectionString) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
+const isLocalDb =
+  /localhost|127\.0\.0\.1/i.test(connectionString) ||
+  process.env.DATABASE_SSL === "false";
+
 const globalForDb = globalThis as typeof globalThis & {
   __hostellizerSql?: ReturnType<typeof postgres>;
 };
 
-/** Single shared pool — avoids Neon "max clients reached" when each route created its own `postgres()`. */
 export const sql =
   globalForDb.__hostellizerSql ??
   postgres(connectionString, {
-    ssl: "require",
+    ssl: isLocalDb ? false : "require",
     max: 1,
     idle_timeout: 20,
     connect_timeout: 15,

@@ -7,21 +7,21 @@ export async function GET() {
   try {
     const hostelId = await getAuthenticatedHostelId();
     const students = await sql`
-      SELECT 
+      SELECT
         id,
         name,
         email,
         phone,
-        "roomnumber",
+        room_number AS "roomnumber",
         status,
-        "joineddate",
-        "accomodationtype",
-        "monthlyrent",
-        "paymentstatus"
+        joined_date AS "joineddate",
+        accommodation_type AS "accomodationtype",
+        monthly_rent AS "monthlyrent",
+        payment_status AS "paymentstatus"
       FROM students
-      WHERE "hostelid" = ${hostelId}
-      AND status = 'active'
-      ORDER BY "roomnumber", name;
+      WHERE hostelid = ${hostelId}
+        AND lower(COALESCE(status, 'active')) = 'active'
+      ORDER BY room_number NULLS LAST, name;
     `;
     
     // Group students by room number

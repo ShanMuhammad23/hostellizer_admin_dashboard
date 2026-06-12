@@ -19,12 +19,12 @@ const Hero = ({
     },
   },
   image = {
-    src: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/placeholder-1.svg",
+    src: "/img/hero.jpg",
     alt: "Hero section demo image showing interface components",
   },
 }) => {
   return (
-    <section className="py-32 px-4">
+    <section className="py-32 px-4 max-w-7xl mx-auto">
       <div className="container">
         <div className="grid items-center gap-8 lg:grid-cols-2">
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
@@ -59,7 +59,7 @@ const Hero = ({
           <img
             src={image.src}
             alt={image.alt}
-            className="max-h-96 w-full rounded-md object-cover"
+            className="max-h-96 w-full rounded-md "
           />
         </div>
       </div>

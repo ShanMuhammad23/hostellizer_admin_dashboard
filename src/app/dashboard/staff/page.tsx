@@ -75,7 +75,7 @@ export default function StaffDirectoryPage() {
   if (loading) return <MegaLoader />;
 
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-4 p-4 md:p-6  ">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary">Staff directory</h1>

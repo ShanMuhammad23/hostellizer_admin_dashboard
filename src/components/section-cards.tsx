@@ -123,7 +123,7 @@ export function SectionCards() {
 
   if (isLoading || !overviewData) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full max-w-7xl mx-auto px-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full  mx-auto px-2">
         {Array.from({ length: 6 }).map((_, index) => (
           <CardSkeleton key={index} />
         ))}
@@ -241,7 +241,7 @@ export function SectionCards() {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full max-w-7xl mx-auto px-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2 w-full  mx-auto px-2">
       {cards.map((card, index) => (
         <Card
           key={index}
