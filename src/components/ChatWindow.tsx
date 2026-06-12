@@ -1,12 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { IconSend, IconPaperclip, IconX } from '@tabler/icons-react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 interface Message {
   id: string;
   content: string;
@@ -58,18 +51,8 @@ export default function ChatWindow({ chatId, studentName, onClose }: ChatWindowP
 
     fetchMessages();
 
-    // Subscribe to new messages
-    const channel = supabase.channel('messages')
-      .on('broadcast', { event: 'new_message' }, ({ payload }) => {
-        if (payload.chatId === chatId) {
-          setMessages(prev => [...prev, payload.message]);
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
   }, [chatId]);
 
   useEffect(() => {

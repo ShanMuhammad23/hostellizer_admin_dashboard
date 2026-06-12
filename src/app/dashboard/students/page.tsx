@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from "next-auth/react";
 import MegaLoader from '@/components/ui/MegaLoader';
 import Image from "next/image";
@@ -30,14 +31,22 @@ interface Student {
 }
 
 export default function StudentsPage() {
+  const searchParams = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') ?? '');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const { data: session } = useSession();
   const [isExporting, setIsExporting] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const q = searchParams.get('search');
+    if (q != null) setSearchQuery(q);
+    if (searchParams.get('action') === 'add') setAddDialogOpen(true);
+  }, [searchParams]);
 
   const fetchStudents = async () => {
     if (!session?.user?.id) {
@@ -153,7 +162,11 @@ export default function StudentsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
           <h1 className="text-xl font-bold text-primary">All Students({filteredStudents.length})</h1>
-          <AddStudentForm onStudentAdded={fetchStudents} />
+          <AddStudentForm
+            onStudentAdded={fetchStudents}
+            open={addDialogOpen}
+            onOpenChange={setAddDialogOpen}
+          />
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <Button

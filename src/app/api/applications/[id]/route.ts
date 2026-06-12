@@ -34,14 +34,13 @@ export async function PUT(
       if (status === 'approved') {
         // Check if a chat already exists for this application
         const existingChat = await sql`
-          SELECT id FROM chats WHERE application_id = ${id}
+          SELECT id FROM application_chats WHERE application_id = ${id}::integer
         `;
 
         if (existingChat.length === 0) {
-          // Create a new chat
           await sql`
-            INSERT INTO chats (application_id, last_message_at)
-            VALUES (${id}, CURRENT_TIMESTAMP)
+            INSERT INTO application_chats (application_id, last_message_at)
+            VALUES (${id}::integer, CURRENT_TIMESTAMP)
             ON CONFLICT (application_id) DO NOTHING
           `;
         }

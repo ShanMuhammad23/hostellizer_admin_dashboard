@@ -11,6 +11,7 @@ import { DashboardAlertsStrip } from "@/components/dashboard/DashboardAlertsStri
 import { RevenueTrendChart } from "@/components/dashboard/RevenueTrendChart"
 import { OccupancyRoomVisual } from "@/components/dashboard/OccupancyRoomVisual"
 import { DashboardBottomStrip } from "@/components/dashboard/DashboardBottomStrip"
+import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions"
 
 async function getSession() {
   return await getServerSession(authOptions)
@@ -40,6 +41,7 @@ function DashboardContent() {
   return (
     <div className="flex flex-col gap-4 md:gap-5  mx-auto w-full px-2">
       <DashboardAlertsStrip />
+      <DashboardQuickActions />
       <SectionCards />
       <section aria-label="Primary workspace" className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">

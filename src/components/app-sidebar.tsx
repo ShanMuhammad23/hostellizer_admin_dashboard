@@ -10,12 +10,10 @@ import {
   IconStar,
   IconPaperBag,
   IconSettings,
-  IconMessage,
-  IconUserCheck,
   IconIdBadge2,
 } from "@tabler/icons-react"
 
-import { NavMain } from "@/components/nav-main"
+import { NavMain, type NavMainItem } from "@/components/nav-main"
 import {
   Sidebar,
   SidebarContent,
@@ -24,64 +22,61 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { LogOut } from "lucide-react"
 
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: IconDashboard,
-    },
-    {
-      title: "Profile",
-      url: "/dashboard/profile",
-      icon: IconUserCircle,
-    },
-    {
-      title: "All Students",
-      url: "/dashboard/students",
-      icon: IconUsers,
-    },
-    {
-      title: "Staff",
-      url: "/dashboard/staff",
-      icon: IconIdBadge2,
-    },
-    {
-      title:"Mark Attendance",
-      url: "/dashboard/room-attendance",
-      icon: IconUserCheck,
-    },
-    {
-      title: "Expenses",
-      url: "/dashboard/expenses",
-      icon: IconCash,
-    },
-    {
-      title: "Applications",
-      url: "/dashboard/applications",
-      icon: IconPaperBag,
-    },
-    {
-      title: "Chats",
-      url: "/dashboard/chats",
-      icon: IconMessage,
-    },
-    {
-      title: "Reviews",
-      url: "/dashboard/reviews",
-      icon: IconStar
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: IconSettings
-    }
-  ],
-}
+const navMain: NavMainItem[] = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: IconDashboard,
+  },
+  {
+    title: "Students",
+    icon: IconUsers,
+    items: [
+      { title: "All students", url: "/dashboard/students" },
+      { title: "Room attendance", url: "/dashboard/room-attendance" },
+    ],
+  },
+  {
+    title: "Staff",
+    icon: IconIdBadge2,
+    items: [
+      { title: "Staff directory", url: "/dashboard/staff" },
+    ],
+  },
+  {
+    title: "Finance",
+    icon: IconCash,
+    items: [
+      { title: "Expenses", url: "/dashboard/expenses" },
+    ],
+  },
+  {
+    title: "Admissions",
+    icon: IconPaperBag,
+    items: [
+      { title: "Applications", url: "/dashboard/applications" },
+      { title: "Chats", url: "/dashboard/chats" },
+    ],
+  },
+  {
+    title: "Community",
+    icon: IconStar,
+    items: [
+      { title: "Reviews", url: "/dashboard/reviews" },
+    ],
+  },
+  {
+    title: "Hostel",
+    icon: IconUserCircle,
+    items: [
+      { title: "Profile & photos", url: "/dashboard/profile" },
+      { title: "Settings", url: "/dashboard/settings" },
+    ],
+  },
+]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
@@ -115,7 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
       </SidebarContent>
       
       <SidebarFooter className="border-t">

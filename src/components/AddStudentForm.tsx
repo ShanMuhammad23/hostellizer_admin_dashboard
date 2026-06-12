@@ -52,10 +52,18 @@ const formSchema = z.object({
 
 interface AddStudentFormProps {
   onStudentAdded?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddStudentForm({ onStudentAdded }: AddStudentFormProps) {
-  const [open, setOpen] = useState(false);
+export function AddStudentForm({
+  onStudentAdded,
+  open: controlledOpen,
+  onOpenChange,
+}: AddStudentFormProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
 

@@ -1,14 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface Chat {
   id: string;
@@ -24,46 +17,39 @@ interface ChatListProps {
   onSelectChat: (chatId: string, studentName: string) => void;
 }
 
+const POLL_INTERVAL_MS = 10_000;
+
 export default function ChatList({ onSelectChat }: ChatListProps) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchChats();
-    subscribeToNewMessages();
-  }, []);
-
-  const fetchChats = async () => {
+  const fetchChats = useCallback(async (showLoader = false) => {
     try {
-      setLoading(true);
+      if (showLoader) setLoading(true);
       const response = await fetch('/api/chats');
       const data = await response.json();
-      
+
       if (data.success) {
         setChats(data.chats);
       } else {
         throw new Error(data.message);
       }
     } catch (error) {
-      toast.error("Failed to load chats");
+      if (showLoader) {
+        toast.error("Failed to load chats");
+      }
       console.error('Error fetching chats:', error);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
-  };
+  }, []);
 
-  const subscribeToNewMessages = () => {
-    const channel = supabase.channel('messages')
-      .on('broadcast', { event: 'new_message' }, () => {
-        fetchChats(); // Refresh chat list when new message arrives
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  };
+  useEffect(() => {
+    fetchChats(true);
+    const interval = setInterval(() => fetchChats(false), POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [fetchChats]);
 
   const filteredChats = chats.filter(chat =>
     chat.student_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -79,7 +65,6 @@ export default function ChatList({ onSelectChat }: ChatListProps) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-white">
-      {/* Search Header */}
       <div className="p-2 bg-white border-b shadow-sm">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -92,7 +77,6 @@ export default function ChatList({ onSelectChat }: ChatListProps) {
         </div>
       </div>
 
-      {/* Chat List */}
       <div className="flex-1 overflow-y-auto">
         {filteredChats.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500">
@@ -138,4 +122,4 @@ export default function ChatList({ onSelectChat }: ChatListProps) {
       </div>
     </div>
   );
-} 
+}
