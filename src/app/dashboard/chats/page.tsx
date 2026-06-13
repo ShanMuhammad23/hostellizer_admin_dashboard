@@ -1,7 +1,8 @@
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ChatList from '@/components/ChatList';
 import Chat from '@/components/Chat';
+import { requestChatNotificationPermission, unlockChatAudio } from '@/lib/chatNotifications';
 
 export default function ChatsPage() {
   const [selectedChat, setSelectedChat] = useState<{
@@ -9,6 +10,22 @@ export default function ChatsPage() {
     studentName: string;
   } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  const handleSelectChat = useCallback((chatId: string, studentName: string) => {
+    setSelectedChat({ id: chatId, studentName });
+  }, []);
+
+  useEffect(() => {
+    void requestChatNotificationPermission();
+
+    const unlock = () => unlockChatAudio();
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -32,9 +49,8 @@ export default function ChatsPage() {
             />
           ) : (
             <ChatList
-              onSelectChat={(chatId, studentName) =>
-                setSelectedChat({ id: chatId, studentName })
-              }
+              activeChatId={selectedChat?.id ?? null}
+              onSelectChat={handleSelectChat}
             />
           )
         ) : (
@@ -42,9 +58,8 @@ export default function ChatsPage() {
           <div className="grid grid-cols-12 h-full">
             <div className="col-span-4 border-r">
               <ChatList
-                onSelectChat={(chatId, studentName) =>
-                  setSelectedChat({ id: chatId, studentName })
-                }
+                activeChatId={selectedChat?.id ?? null}
+                onSelectChat={handleSelectChat}
               />
             </div>
             <div className="col-span-8">

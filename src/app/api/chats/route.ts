@@ -18,15 +18,30 @@ export async function GET(request: Request) {
           m.sender_type,
           CASE
             WHEN m.sender_type = 'hostel' THEN h.name
-            WHEN m.sender_type = 'student' THEN hs.name
+            ELSE COALESCE(hs.name, sk.full_name, 'Student')
           END AS sender_name
         FROM messages m
         LEFT JOIN hostels h
           ON m.sender_type = 'hostel' AND h.id::text = m.sender_id
         LEFT JOIN students hs
           ON m.sender_type = 'student' AND hs.id::text = m.sender_id
+        LEFT JOIN hostel_seekers sk
+          ON m.sender_type = 'student' AND sk.id::text = m.sender_id
         WHERE m.chat_id = ${chatId}::uuid
         ORDER BY m.created_at ASC
+      `;
+
+      await sql`
+        UPDATE application_chats ac
+        SET hostel_last_read_at = CURRENT_TIMESTAMP
+        FROM applications a
+        LEFT JOIN students hs ON hs.id = a.student_id
+        WHERE ac.id = ${chatId}::uuid
+          AND ac.application_id = a.id
+          AND (
+            a.hostelid = ${hostelId}::uuid
+            OR (a.hostelid IS NULL AND hs.hostelid = ${hostelId}::uuid)
+          )
       `;
 
       return NextResponse.json({ success: true, messages });
@@ -36,12 +51,17 @@ export async function GET(request: Request) {
       SELECT
         a.id AS application_id,
         a.status,
-        hs.name AS student_name,
+        COALESCE(hs.name, sk.full_name) AS student_name,
         ac.id AS chat_id
       FROM applications a
-      INNER JOIN students hs ON hs.id = a.student_id AND hs.hostelid = ${hostelId}::uuid
+      LEFT JOIN students hs ON hs.id = a.student_id
+      LEFT JOIN hostel_seekers sk ON sk.id = a.seeker_id
       LEFT JOIN application_chats ac ON ac.application_id = a.id
       WHERE lower(COALESCE(a.status, '')) = 'approved'
+        AND (
+          a.hostelid = ${hostelId}::uuid
+          OR (a.hostelid IS NULL AND hs.hostelid = ${hostelId}::uuid)
+        )
     `;
 
     for (const app of approvedApps) {
@@ -60,19 +80,38 @@ export async function GET(request: Request) {
         ac.created_at,
         ac.last_message_at,
         a.id AS application_id,
-        hs.name AS student_name,
-        hs.id AS student_id,
+        COALESCE(hs.name, sk.full_name) AS student_name,
+        COALESCE(hs.id::text, sk.id::text) AS student_id,
         (
           SELECT content
           FROM messages
           WHERE chat_id = ac.id
           ORDER BY created_at DESC
           LIMIT 1
-        ) AS last_message
+        ) AS last_message,
+        (
+          SELECT sender_type
+          FROM messages
+          WHERE chat_id = ac.id
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) AS last_message_sender_type,
+        (
+          SELECT COUNT(*)::int
+          FROM messages m
+          WHERE m.chat_id = ac.id
+            AND m.sender_type = 'student'
+            AND m.created_at > COALESCE(ac.hostel_last_read_at, ac.created_at)
+        ) AS unread_count
       FROM application_chats ac
       INNER JOIN applications a ON a.id = ac.application_id
-      INNER JOIN students hs ON hs.id = a.student_id AND hs.hostelid = ${hostelId}::uuid
+      LEFT JOIN students hs ON hs.id = a.student_id
+      LEFT JOIN hostel_seekers sk ON sk.id = a.seeker_id
       WHERE lower(COALESCE(a.status, '')) = 'approved'
+        AND (
+          a.hostelid = ${hostelId}::uuid
+          OR (a.hostelid IS NULL AND hs.hostelid = ${hostelId}::uuid)
+        )
       ORDER BY ac.last_message_at DESC NULLS LAST
     `;
 
@@ -106,9 +145,12 @@ export async function POST(request: Request) {
       SELECT 1
       FROM application_chats ac
       INNER JOIN applications a ON a.id = ac.application_id
-      INNER JOIN students hs ON hs.id = a.student_id
+      LEFT JOIN students hs ON hs.id = a.student_id
       WHERE ac.id = ${chatId}::uuid
-        AND hs.hostelid = ${hostelId}::uuid
+        AND (
+          a.hostelid = ${hostelId}::uuid
+          OR (a.hostelid IS NULL AND hs.hostelid = ${hostelId}::uuid)
+        )
         AND lower(COALESCE(a.status, '')) = 'approved'
     `;
 

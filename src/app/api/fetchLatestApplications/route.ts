@@ -9,14 +9,17 @@ export async function GET() {
     const LatestApplications = await sql`
       SELECT
         a.id,
-        a.student_id,
+        COALESCE(a.student_id::text, a.seeker_id::text) AS student_id,
         a.status,
-        a.application_date AS date,
-        hs.name AS student_name,
-        COALESCE(hs.monthly_rent, 0)::numeric AS "bid-amount"
+        COALESCE(a.application_date, a.date) AS date,
+        COALESCE(hs.name, sk.full_name) AS student_name,
+        COALESCE(a.bidamount, hs.monthly_rent, 0)::numeric AS "bid-amount"
       FROM applications a
-      INNER JOIN students hs ON hs.id = a.student_id AND hs.hostelid = ${hostelId}
-      ORDER BY a.application_date DESC NULLS LAST
+      LEFT JOIN students hs ON hs.id = a.student_id
+      LEFT JOIN hostel_seekers sk ON sk.id = a.seeker_id
+      WHERE a.hostelid = ${hostelId}
+        OR (a.hostelid IS NULL AND hs.hostelid = ${hostelId})
+      ORDER BY COALESCE(a.application_date, a.date) DESC NULLS LAST
       LIMIT 5
     `;
 

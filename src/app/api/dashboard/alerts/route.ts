@@ -26,8 +26,12 @@ export async function GET() {
         (
           SELECT COUNT(*)::bigint
           FROM applications a
-          INNER JOIN students s ON s.id = a.student_id AND s.hostelid = ${hostelId}
+          LEFT JOIN students s ON s.id = a.student_id
           WHERE lower(COALESCE(a.status, '')) = 'pending'
+            AND (
+              a.hostelid = ${hostelId}
+              OR (a.hostelid IS NULL AND s.hostelid = ${hostelId})
+            )
         )::text AS pending_applications,
         (
           SELECT COUNT(*)::bigint

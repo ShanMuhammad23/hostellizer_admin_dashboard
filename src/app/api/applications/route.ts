@@ -22,15 +22,20 @@ export async function GET(request: Request) {
       const newApplications = await sql`
         SELECT
           a.id,
-          a.student_id::text AS student_id,
+          COALESCE(a.student_id::text, a.seeker_id::text) AS student_id,
           a.status,
-          a.application_date AS date,
-          COALESCE(hs.monthly_rent, 0)::numeric AS bidamount,
-          hs.name AS student_name
+          COALESCE(a.application_date, a.date) AS date,
+          COALESCE(a.bidamount, hs.monthly_rent, 0)::numeric AS bidamount,
+          COALESCE(hs.name, sk.full_name) AS student_name
         FROM applications a
-        INNER JOIN students hs ON hs.id = a.student_id AND hs.hostelid = ${hostelId}
-        WHERE a.application_date > ${lastTs.toISOString()}::timestamp
-        ORDER BY a.application_date DESC
+        LEFT JOIN students hs ON hs.id = a.student_id
+        LEFT JOIN hostel_seekers sk ON sk.id = a.seeker_id
+        WHERE (
+          a.hostelid = ${hostelId}
+          OR (a.hostelid IS NULL AND hs.hostelid = ${hostelId})
+        )
+          AND COALESCE(a.application_date, a.date) > ${lastTs.toISOString()}::timestamp
+        ORDER BY COALESCE(a.application_date, a.date) DESC
       `;
 
       for (const app of newApplications) {
@@ -47,14 +52,17 @@ export async function GET(request: Request) {
     const applications = await sql`
       SELECT
         a.id,
-        a.student_id::text AS student_id,
+        COALESCE(a.student_id::text, a.seeker_id::text) AS student_id,
         a.status,
-        a.application_date AS date,
-        COALESCE(hs.monthly_rent, 0)::numeric AS bidamount,
-        hs.name AS student_name
+        COALESCE(a.application_date, a.date) AS date,
+        COALESCE(a.bidamount, hs.monthly_rent, 0)::numeric AS bidamount,
+        COALESCE(hs.name, sk.full_name) AS student_name
       FROM applications a
-      INNER JOIN students hs ON hs.id = a.student_id AND hs.hostelid = ${hostelId}
-      ORDER BY a.application_date DESC
+      LEFT JOIN students hs ON hs.id = a.student_id
+      LEFT JOIN hostel_seekers sk ON sk.id = a.seeker_id
+      WHERE a.hostelid = ${hostelId}
+        OR (a.hostelid IS NULL AND hs.hostelid = ${hostelId})
+      ORDER BY COALESCE(a.application_date, a.date) DESC
     `;
 
     return NextResponse.json({
@@ -84,10 +92,16 @@ export async function PUT(request: Request) {
     const result = await sql`
       UPDATE applications AS a
       SET status = ${status}, updated_at = CURRENT_TIMESTAMP
-      FROM students AS s
       WHERE a.id = ${id}::integer
-        AND a.student_id = s.id
-        AND s.hostelid = ${hostelId}
+        AND (
+          a.hostelid = ${hostelId}
+          OR EXISTS (
+            SELECT 1
+            FROM students s
+            WHERE s.id = a.student_id
+              AND s.hostelid = ${hostelId}
+          )
+        )
       RETURNING a.*
     `;
 

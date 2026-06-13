@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
                  INNER JOIN students st ON st.id = rev.student_id AND st.hostelid = h.id) AS number_of_reviews,
                 (SELECT COUNT(*)
                  FROM applications app
-                 INNER JOIN students st2 ON st2.id = app.student_id AND st2.hostelid = h.id) AS number_of_applications,
+                 LEFT JOIN students st2 ON st2.id = app.student_id
+                 WHERE app.hostelid = h.id
+                    OR (app.hostelid IS NULL AND st2.hostelid = h.id)) AS number_of_applications,
                 COALESCE(h.images, ARRAY[]::text[]) AS hostel_images
             FROM
                 hostels h

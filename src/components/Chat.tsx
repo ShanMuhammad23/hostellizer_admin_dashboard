@@ -4,6 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Send, Loader2, ArrowLeft, Check, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from '@/lib/useAuth';
+import {
+  notifyMessageReceived,
+  notifyMessageSent,
+} from '@/lib/chatNotifications';
 
 interface Message {
   id: string;
@@ -29,6 +33,8 @@ export default function Chat({ chatId, studentName, onBack }: ChatProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const knownMessageIdsRef = useRef<Set<string>>(new Set());
+  const isInitialFetchRef = useRef(true);
   const { user } = useAuth();
 
   const scrollToBottom = () => {
@@ -42,7 +48,28 @@ export default function Chat({ chatId, studentName, onBack }: ChatProps) {
       const data = await response.json();
 
       if (data.success) {
-        setMessages(data.messages);
+        const incoming = data.messages as Message[];
+
+        if (isInitialFetchRef.current) {
+          isInitialFetchRef.current = false;
+        } else {
+          for (const message of incoming) {
+            if (
+              !knownMessageIdsRef.current.has(message.id) &&
+              message.sender_type === 'student'
+            ) {
+              notifyMessageReceived(
+                message.sender_name || studentName,
+                message.content,
+                chatId,
+                message.id
+              );
+            }
+          }
+        }
+
+        knownMessageIdsRef.current = new Set(incoming.map((message) => message.id));
+        setMessages(incoming);
       } else {
         throw new Error(data.message);
       }
@@ -54,6 +81,11 @@ export default function Chat({ chatId, studentName, onBack }: ChatProps) {
     } finally {
       if (showLoader) setLoading(false);
     }
+  }, [chatId, studentName]);
+
+  useEffect(() => {
+    isInitialFetchRef.current = true;
+    knownMessageIdsRef.current = new Set();
   }, [chatId]);
 
   useEffect(() => {
@@ -102,9 +134,11 @@ export default function Chat({ chatId, studentName, onBack }: ChatProps) {
 
       if (data.success) {
         const updatedMessage = { ...data.message, status: 'sent' as const };
+        knownMessageIdsRef.current.add(updatedMessage.id);
         setMessages(prev => prev.map(msg =>
           msg.id === tempId ? updatedMessage : msg
         ));
+        notifyMessageSent(studentName, content);
       } else {
         throw new Error(data.message);
       }
