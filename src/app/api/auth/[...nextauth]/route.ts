@@ -2,6 +2,11 @@ import NextAuth, { AuthOptions, Session, User } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { sql } from '@/lib/db';
+import {
+  authCookieDomain,
+  sessionCookieName,
+  useSecureAuthCookies,
+} from "@/lib/auth-cookies";
 
 // Specify Node.js runtime
 export const runtime = 'nodejs'
@@ -38,6 +43,7 @@ if (!process.env.NEXTAUTH_URL) {
 }
 
 export const authOptions: AuthOptions = {
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -97,32 +103,36 @@ export const authOptions: AuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: sessionCookieName,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
+        secure: useSecureAuthCookies(),
+        domain: authCookieDomain(),
       }
     },
     callbackUrl: {
-      name: `next-auth.callback-url`,
+      name: useSecureAuthCookies()
+        ? '__Secure-next-auth.callback-url'
+        : 'next-auth.callback-url',
       options: {
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
+        secure: useSecureAuthCookies(),
+        domain: authCookieDomain(),
       }
     },
     csrfToken: {
-      name: 'next-auth.csrf-token',
+      name: useSecureAuthCookies()
+        ? '__Host-next-auth.csrf-token'
+        : 'next-auth.csrf-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_DOMAIN : undefined
+        secure: useSecureAuthCookies(),
+        domain: authCookieDomain(),
       }
     }
   },
