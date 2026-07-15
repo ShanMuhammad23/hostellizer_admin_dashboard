@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { NextRequestWithAuth } from 'next-auth/middleware';
+import { sessionCookieName, useSecureAuthCookies } from '@/lib/auth-cookies';
 
 // List of protected routes that require authentication
 const protectedRoutes = ['/dashboard', '/profile', '/applications', '/change-password'];
@@ -21,7 +22,8 @@ export async function middleware(request: NextRequestWithAuth) {
   const token = await getToken({ 
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
-    secureCookie: process.env.NODE_ENV === 'production'
+    secureCookie: useSecureAuthCookies(),
+    cookieName: sessionCookieName,
   });
   
   const { pathname } = request.nextUrl;
