@@ -198,7 +198,7 @@ const Profile = () => {
                             </div>
                         )}
                         <div className="absolute bottom-4 left-4 flex space-x-2">
-                            {hostel.hostel_images.map((_, index) => (
+                            {(hostel.hostel_images ?? []).map((_, index) => (
                                 <Button
                                     key={index}
                                     onClick={() => setActiveImageIndex(index)}
@@ -326,14 +326,21 @@ const Profile = () => {
                                     <FaPhone className=" mr-2 sm:mr-3" />
                                     <span className="text-sm sm:text-base text-gray-700">{hostel.hostel_phone}</span>
                                 </div>
-                                {hostel.addresses.map((address, index) => (
+                                {(hostel.addresses ?? []).length > 0 ? (
+                                    (hostel.addresses ?? []).map((address, index) => (
                                     <div key={index} className="flex items-start">
                                         <FaMapMarkerAlt className=" mr-2 sm:mr-3 mt-1" />
                                         <span className="text-sm sm:text-base text-gray-700">
                                             {address.street}, {address.town}, {address.city}
                                         </span>
                                     </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <div className="flex items-start text-gray-500 text-sm sm:text-base">
+                                        <FaMapMarkerAlt className=" mr-2 sm:mr-3 mt-1" />
+                                        <span>No address added yet</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -467,12 +474,16 @@ const Profile = () => {
                         <div className="bg-white rounded-lg border border-purple-200 p-4 sm:p-6">
                             <h2 className="text-lg sm:text-xl font-semibold text-purple-900 mb-3 sm:mb-4">Hostel Rules</h2>
                             <ul className="space-y-2">
-                                {hostel.hostel_rules.map((rule, index) => (
+                                {(hostel.hostel_rules ?? []).length > 0 ? (
+                                    (hostel.hostel_rules ?? []).map((rule, index) => (
                                     <li key={index} className="flex items-start">
                                         <span className=" mr-2">•</span>
                                         <span className="text-sm sm:text-base text-gray-700">{rule}</span>
                                     </li>
-                                ))}
+                                    ))
+                                ) : (
+                                    <li className="text-sm sm:text-base text-gray-500">No rules added yet</li>
+                                )}
                             </ul>
                         </div>
 

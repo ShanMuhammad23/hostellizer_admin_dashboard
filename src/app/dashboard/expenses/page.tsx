@@ -39,9 +39,22 @@ interface Expense {
   name: string;
   amount: number;
   date: string;
+  expense_date?: string;
   description: string;
   created_at: string;
   updated_at: string;
+}
+
+function formatExpenseDate(value: string | undefined) {
+  if (!value) return "—";
+  const datePart = value.split("T")[0];
+  const [year, month, day] = datePart.split("-").map(Number);
+  if (!year || !month || !day) return "—";
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function ExpensesPage() {
@@ -346,7 +359,9 @@ export default function ExpensesPage() {
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-primary">PKR {expense.amount.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">{new Date(expense.date).toLocaleDateString('en-Us', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                  <p className="text-sm text-gray-600">
+                    {formatExpenseDate(expense.date ?? expense.expense_date)}
+                  </p>
                 </div>
               </div>
             </div>

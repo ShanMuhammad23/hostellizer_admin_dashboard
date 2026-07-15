@@ -49,6 +49,11 @@ WHERE student_id IN (
   SELECT id FROM students WHERE email LIKE '%@student.hostellizer.pk'
 );
 
+DELETE FROM mess_attendance_records
+WHERE student_id IN (
+  SELECT id FROM students WHERE email LIKE '%@student.hostellizer.pk'
+);
+
 DELETE FROM students
 WHERE email LIKE '%@student.hostellizer.pk';
 
@@ -273,5 +278,17 @@ SELECT
   'Emergency family expense'
 FROM staff s
 WHERE s.cnic = '3520298765432';
+
+-- Default meal types (shared across hostels)
+INSERT INTO meal_types (id, name, start_time, end_time, active)
+VALUES
+  ('00000000-0000-4000-b000-000000000001', 'Breakfast', '07:00', '09:00', true),
+  ('00000000-0000-4000-b000-000000000002', 'Lunch', '12:30', '14:30', true),
+  ('00000000-0000-4000-b000-000000000003', 'Dinner', '19:30', '21:30', true)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  start_time = EXCLUDED.start_time,
+  end_time = EXCLUDED.end_time,
+  active = EXCLUDED.active;
 
 COMMIT;

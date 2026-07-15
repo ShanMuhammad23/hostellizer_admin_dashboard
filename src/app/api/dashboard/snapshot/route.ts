@@ -9,9 +9,9 @@ export async function GET() {
     let messAttendanceToday = 0;
     try {
       const [messToday] = await sql<{ c: string }[]>`
-        SELECT COUNT(DISTINCT (mar.student_id::text))::text AS c
+        SELECT COUNT(DISTINCT mar.student_id)::text AS c
         FROM mess_attendance_records mar
-        INNER JOIN students s ON s.id::text = mar.student_id::text
+        INNER JOIN students s ON s.id = mar.student_id
         WHERE s.hostelid = ${hostelId}
           AND mar.attendance_date = CURRENT_DATE
       `;

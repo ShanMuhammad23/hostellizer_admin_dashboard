@@ -6,7 +6,16 @@ export async function GET() {
   try {
     const hostelId = await getAuthenticatedHostelId();
     const expenses = await sql`
-      SELECT *
+      SELECT
+        id,
+        name,
+        amount,
+        description,
+        expense_date AS date,
+        category,
+        hostelid,
+        created_at,
+        updated_at
       FROM expenses
       WHERE hostelid = ${hostelId}
       ORDER BY expense_date DESC NULLS LAST, created_at DESC

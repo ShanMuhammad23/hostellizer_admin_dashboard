@@ -17,6 +17,14 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        const studentIdNum = Number(studentId);
+        if (!Number.isInteger(studentIdNum)) {
+            return NextResponse.json(
+                { success: false, message: 'Invalid student ID' },
+                { status: 400 }
+            );
+        }
+
         // Get the first and last day of the month
         const [year, monthNum] = month.split('-');
         const firstDay = `${year}-${monthNum}-01`;
@@ -26,7 +34,7 @@ export async function GET(request: NextRequest) {
 
         // First, verify that the student exists
         const studentCheck = await sql`
-            SELECT id FROM students WHERE id = ${studentId}
+            SELECT id FROM students WHERE id = ${studentIdNum}
         `;
 
         if (studentCheck.length === 0) {
@@ -51,7 +59,7 @@ export async function GET(request: NextRequest) {
                 mar.status,
                 COUNT(*) as count
             FROM mess_attendance_records mar
-            WHERE mar.student_id = ${studentId}
+            WHERE mar.student_id = ${studentIdNum}
             AND mar.attendance_date >= ${firstDay}
             AND mar.attendance_date <= ${lastDay}
             GROUP BY mar.meal_type_id, mar.status

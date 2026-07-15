@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
-import { getAuthenticatedHostelId } from '@/lib/auth';
-
 // GET /api/mess-attendance?studentId=xxx&date=xxx
 export async function GET(request: NextRequest) {
     try {
@@ -17,6 +15,14 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        const studentIdNum = Number(studentId);
+        if (!Number.isInteger(studentIdNum)) {
+            return NextResponse.json(
+                { success: false, message: 'Invalid student ID' },
+                { status: 400 }
+            );
+        }
+
         const attendance = await sql`
             SELECT 
                 mar.id,
@@ -24,14 +30,13 @@ export async function GET(request: NextRequest) {
                 mar.attendance_date,
                 mar.meal_type_id,
                 mar.status,
-                mar.notes,
                 mar.created_at,
                 mt.name as meal_type_name,
                 mt.start_time,
                 mt.end_time
             FROM mess_attendance_records mar
             JOIN meal_types mt ON mar.meal_type_id = mt.id
-            WHERE mar.student_id = ${studentId}
+            WHERE mar.student_id = ${studentIdNum}
             AND mar.attendance_date = ${date}
             ORDER BY mt.start_time;
         `;
@@ -62,22 +67,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const studentIdNum = Number(studentId);
+        if (!Number.isInteger(studentIdNum)) {
+            return NextResponse.json(
+                { success: false, message: 'Invalid student ID' },
+                { status: 400 }
+            );
+        }
+
         const result = await sql`
             INSERT INTO mess_attendance_records (
                 student_id,
                 attendance_date,
                 meal_type_id,
-                status,
+                status
             ) VALUES (
-                ${studentId},
+                ${studentIdNum},
                 ${date},
                 ${mealTypeId},
-                ${status},
+                ${status}
             )
             ON CONFLICT (student_id, attendance_date, meal_type_id)
             DO UPDATE SET
-                status = ${status},
-                createdat = CURRENT_TIMESTAMP
+                status = EXCLUDED.status,
+                updated_at = CURRENT_TIMESTAMP
             RETURNING *;
         `;
 

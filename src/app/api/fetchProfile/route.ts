@@ -36,18 +36,24 @@ export async function GET(request: NextRequest) {
             SELECT
                 h.id AS hostel_id,
                 h.name AS hostel_name,
-                (SELECT JSON_AGG(JSON_BUILD_OBJECT('street', ad.street, 'town', ad.town, 'city', ad.city))
-                 FROM addresses ad
-                 WHERE ad.hostelid = h.id) AS addresses,
+                COALESCE(
+                  (SELECT JSON_AGG(JSON_BUILD_OBJECT('street', ad.street, 'town', ad.town, 'city', ad.city))
+                   FROM addresses ad
+                   WHERE ad.hostelid = h.id),
+                  '[]'::json
+                ) AS addresses,
                 h.email AS hostel_email,
                 h.phone AS hostel_phone,
                 COALESCE(h.rentrange, '{"min": 0, "max": 0}'::jsonb) AS hostel_monthly_rent_range,
                 h.totalrooms,
                 h.vacanciesavailable,
                 h.totalrooms - h.vacanciesavailable as total_vacancies,
-                (SELECT ARRAY_AGG(ru.description)
-                 FROM rules ru
-                 WHERE ru.hostelid = h.id) AS hostel_rules,
+                COALESCE(
+                  (SELECT ARRAY_AGG(ru.description)
+                   FROM rules ru
+                   WHERE ru.hostelid = h.id),
+                  ARRAY[]::text[]
+                ) AS hostel_rules,
                 COALESCE(h.amenities::jsonb, '{
                     "wifi": false,
                     "laundry": false,
@@ -64,9 +70,8 @@ export async function GET(request: NextRequest) {
                  INNER JOIN students st ON st.id = rev.student_id AND st.hostelid = h.id) AS number_of_reviews,
                 (SELECT COUNT(*)
                  FROM applications app
-                 LEFT JOIN students st2 ON st2.id = app.student_id
-                 WHERE app.hostelid = h.id
-                    OR (app.hostelid IS NULL AND st2.hostelid = h.id)) AS number_of_applications,
+                 INNER JOIN students st2 ON st2.id = app.student_id
+                 WHERE st2.hostelid = h.id) AS number_of_applications,
                 COALESCE(h.images, ARRAY[]::text[]) AS hostel_images
             FROM
                 hostels h
@@ -87,10 +92,16 @@ export async function GET(request: NextRequest) {
             }, { status: 404 });
         }
 
-        // Ensure hostel_images is always an array
+        // Ensure array fields are never null
         const data = ProfileData[0];
         if (!data.hostel_images) {
             data.hostel_images = [];
+        }
+        if (!data.addresses) {
+            data.addresses = [];
+        }
+        if (!data.hostel_rules) {
+            data.hostel_rules = [];
         }
 
         // Parse the rent range JSON string into an object

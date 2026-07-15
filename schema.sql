@@ -211,17 +211,19 @@ CREATE TABLE public.meal_types (
   end_time time without time zone NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  active boolean DEFAULT true
+  active boolean DEFAULT true,
+  CONSTRAINT meal_types_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE public.mess_attendance_records (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  student_id uuid NOT NULL,
+  student_id integer NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
   attendance_date date NOT NULL,
-  meal_type_id uuid NOT NULL,
+  meal_type_id uuid NOT NULL REFERENCES public.meal_types(id) ON DELETE CASCADE,
   status character varying NOT NULL CHECK (status::text = ANY (ARRAY['present'::character varying::text, 'absent'::character varying::text, 'late'::character varying::text])),
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT mess_attendance_records_student_date_meal_key UNIQUE (student_id, attendance_date, meal_type_id)
 );
 
 CREATE TABLE public.messages (
